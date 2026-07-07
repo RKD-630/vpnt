@@ -339,7 +339,7 @@
             },
             {
                 id: 18,
-                name: "Post Craft",
+                name: "Unicon to Krutidev font",
                 url: "https://rkd-630.github.io/postcraft",
                 developer: "SyncSoft Technologies",
                 category: "utilities",
