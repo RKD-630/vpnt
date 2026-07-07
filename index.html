@@ -3,7 +3,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SoftwareHub - Your Digital Toolkit</title>
     
-<link rel="stylesheet" href="style.css" /></head>
+<link rel="stylesheet" href="style.css?v=2" /></head>
 <body class="">
     <!-- News Ticker -->
     <div class="ticker-wrap">
@@ -49,43 +49,12 @@
             </div>
             <div class="header-actions">
                 <button class="btn-header btn-outline" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Theme" style="padding: 10px 15px;">🌙</button>
-                <button class="btn-header btn-outline" onclick="showToast('info', 'Account', 'Sign in feature coming soon!')">Sign In</button>
+                <button class="btn-header btn-outline" onclick="alert('Sign in feature coming soon!')">Sign In</button>
                 <button class="btn-header btn-primary">Get Started</button>
             </div>
         </div>
     </header>
 
-    <!-- Stats Bar -->
-    <div class="stats-bar">
-        <div class="stat-card">
-            <div class="stat-icon" style="background: rgba(108,92,231,0.15);">📦</div>
-            <div class="stat-info">
-                <h4 class="editable-text">12,480+</h4>
-                <p class="editable-text">Total Software</p>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon" style="background: rgba(0,206,201,0.15);">⬇️</div>
-            <div class="stat-info">
-                <h4 class="editable-text">8.2M+</h4>
-                <p class="editable-text">Total Downloads</p>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon" style="background: rgba(253,121,168,0.15);">⭐</div>
-            <div class="stat-info">
-                <h4 class="editable-text">4.8/5</h4>
-                <p class="editable-text">Avg. User Rating</p>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon" style="background: rgba(253,203,110,0.15);">👥</div>
-            <div class="stat-info">
-                <h4 class="editable-text">540K+</h4>
-                <p class="editable-text">Active Users</p>
-            </div>
-        </div>
-    </div>
 
     <!-- Category Section -->
     <div class="category-section">
@@ -121,26 +90,17 @@
     <div class="software-grid" id="softwareGrid"></div>
 
     <!-- Modal -->
-    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal-overlay" id="modalOverlay" onclick="if(event.target === this) closeModal()">
         <div class="modal" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <h3 id="modalTitle">Software Details</h3>
-                <button class="modal-close" onclick="closeModal()">✕</button>
+                <button class="modal-close" id="mainModalCloseBtn">✕</button>
             </div>
             <div class="modal-body" id="modalBody">
                 <!-- Dynamic content -->
             </div>
         </div>
     </div>
-
-    <!-- Toast Container -->
-    <div class="toast-container" id="toastContainer"><div class="toast info">
-                <span class="toast-icon">ℹ️</span>
-                <div class="toast-content">
-                    <h5>Edit Mode ON</h5>
-                    <p>Click on any text, image, or link to edit it</p>
-                </div>
-            </div></div>
 
     <!-- Footer -->
     <footer>
@@ -194,4 +154,4 @@
     
 
 
-<script src="script.js"></script></body></html>
+<script src="script.js?v=2"></script></body></html>

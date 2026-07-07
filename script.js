@@ -475,230 +475,6 @@
         let currentCategory = 'all';
         let currentView = 'grid';
         let currentSort = 'popular';
-        let isEditMode = false;
-        let currentEditingImage = null;
-        let currentEditingLink = null;
-        let originalContent = null;
-
-        // Toggle Edit Mode
-        function toggleEditMode() {
-            isEditMode = !isEditMode;
-            const body = document.body;
-            const editToggle = document.getElementById('editToggle');
-            const saveBtn = document.getElementById('saveBtn');
-            const cancelBtn = document.getElementById('cancelBtn');
-            const editIndicator = document.getElementById('editIndicator');
-
-            if (isEditMode) {
-                // Save original content
-                originalContent = document.body.innerHTML;
-                
-                body.classList.add('edit-mode');
-                editToggle.textContent = '❌ Edit Mode Off';
-                editToggle.classList.add('active');
-                saveBtn.style.display = 'flex';
-                cancelBtn.style.display = 'flex';
-                editIndicator.classList.add('active');
-
-                // Make elements editable
-                enableEditing();
-                showToast('info', 'Edit Mode ON', 'Click on any text, image, or link to edit it');
-            } else {
-                disableEditing();
-                editToggle.textContent = '✏️ Edit Mode';
-                editToggle.classList.remove('active');
-                saveBtn.style.display = 'none';
-                cancelBtn.style.display = 'none';
-                editIndicator.classList.remove('active');
-                showToast('info', 'Edit Mode OFF', 'Editing has been disabled');
-            }
-        }
-
-        // Enable editing on elements
-        function enableEditing() {
-            // Make text elements editable
-            document.querySelectorAll('.editable-text, .ticker-item, .card-title, .card-developer, .card-description, .tag, .stat-info h4, .stat-info p, .section-title, .footer-col h4, .footer-brand p, .footer-bottom p').forEach(el => {
-                el.setAttribute('contenteditable', 'true');
-            });
-
-            // Make images editable
-            document.querySelectorAll('img').forEach(img => {
-                img.classList.add('editable-image');
-                img.onclick = (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    openImageModal(img);
-                };
-            });
-
-            // Make links editable
-            document.querySelectorAll('a').forEach(link => {
-                link.classList.add('editable-link');
-                link.onclick = (e) => {
-                    if (isEditMode) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        openLinkModal(link);
-                    }
-                };
-            });
-        }
-
-        // Disable editing
-        function disableEditing() {
-            document.body.classList.remove('edit-mode');
-            
-            document.querySelectorAll('[contenteditable]').forEach(el => {
-                el.removeAttribute('contenteditable');
-            });
-
-            document.querySelectorAll('.editable-image').forEach(img => {
-                img.classList.remove('editable-image');
-                img.onclick = null;
-            });
-
-            document.querySelectorAll('.editable-link').forEach(link => {
-                link.onclick = null;
-            });
-        }
-
-        // Save as HTML file and hide edit button
-        function saveAsHTML() {
-            // First, clean up the HTML by removing edit mode artifacts
-            const clone = document.documentElement.cloneNode(true);
-            
-            // Remove edit mode classes and attributes from clone
-            clone.querySelectorAll('[contenteditable]').forEach(el => {
-                el.removeAttribute('contenteditable');
-            });
-            
-            clone.querySelectorAll('.editable-image').forEach(img => {
-                img.classList.remove('editable-image');
-                img.removeAttribute('onclick');
-            });
-            
-            clone.querySelectorAll('.editable-link').forEach(link => {
-                link.classList.remove('editable-link');
-            });
-            
-            // Remove edit mode toggle from the saved file (hide it permanently)
-            const editToggle = clone.querySelector('#editModeToggle');
-            if (editToggle) {
-                editToggle.style.display = 'none';
-            }
-            
-            // Remove edit indicator
-            const editIndicator = clone.querySelector('#editIndicator');
-            if (editIndicator) {
-                editIndicator.classList.remove('active');
-                editIndicator.style.display = 'none';
-            }
-            
-            // Remove image and link edit modals
-            const imageModal = clone.querySelector('#imageEditModal');
-            if (imageModal) imageModal.remove();
-            const linkModal = clone.querySelector('#linkEditModal');
-            if (linkModal) linkModal.remove();
-            
-            // Remove edit-mode class from body
-            clone.querySelector('body').classList.remove('edit-mode');
-            
-            // Get the cleaned HTML
-            let htmlContent = '<!DOCTYPE html>\n' + clone.outerHTML;
-            
-            // Create blob and download
-            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'SoftwareHub_' + new Date().toISOString().slice(0, 10) + '.html';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            // Show success toast
-            showToast('success', 'File Saved!', 'HTML file has been downloaded successfully.');
-            
-            // Hide the edit mode toggle permanently
-            const toggleContainer = document.getElementById('editModeToggle');
-            toggleContainer.classList.add('hidden');
-            
-            // Exit edit mode
-            isEditMode = false;
-            disableEditing();
-            document.getElementById('editIndicator').classList.remove('active');
-            
-            // Also hide on current page after a short delay
-            setTimeout(() => {
-                toggleContainer.style.display = 'none';
-            }, 400);
-        }
-
-        // Cancel editing
-        function cancelEdit() {
-            if (originalContent) {
-                document.body.innerHTML = originalContent;
-                showToast('info', 'Cancelled', 'Changes have been discarded');
-            }
-            isEditMode = false;
-            document.getElementById('editToggle').textContent = '✏️ Edit Mode';
-            document.getElementById('editToggle').classList.remove('active');
-            document.getElementById('saveBtn').style.display = 'none';
-            document.getElementById('cancelBtn').style.display = 'none';
-            document.getElementById('editIndicator').classList.remove('active');
-            
-            // Re-initialize after cancel
-            setTimeout(() => {
-                renderSoftware(softwareData);
-            }, 100);
-        }
-
-        // Image editing
-        function openImageModal(imgElement) {
-            currentEditingImage = imgElement;
-            const modal = document.getElementById('imageEditModal');
-            const input = document.getElementById('imageUrlInput');
-            input.value = imgElement.src;
-            modal.classList.add('active');
-        }
-
-        function closeImageModal() {
-            document.getElementById('imageEditModal').classList.remove('active');
-            currentEditingImage = null;
-        }
-
-        function applyImageChange() {
-            const newUrl = document.getElementById('imageUrlInput').value;
-            if (currentEditingImage && newUrl) {
-                currentEditingImage.src = newUrl;
-                showToast('success', 'Image Updated', 'Image has been changed successfully');
-            }
-            closeImageModal();
-        }
-
-        // Link editing
-        function openLinkModal(linkElement) {
-            currentEditingLink = linkElement;
-            const modal = document.getElementById('linkEditModal');
-            const input = document.getElementById('linkUrlInput');
-            input.value = linkElement.href;
-            modal.classList.add('active');
-        }
-
-        function closeLinkModal() {
-            document.getElementById('linkEditModal').classList.remove('active');
-            currentEditingLink = null;
-        }
-
-        function applyLinkChange() {
-            const newUrl = document.getElementById('linkUrlInput').value;
-            if (currentEditingLink && newUrl) {
-                currentEditingLink.href = newUrl;
-                showToast('success', 'Link Updated', 'Link has been changed successfully');
-            }
-            closeLinkModal();
-        }
 
         // Render software cards
         function renderSoftware(data) {
@@ -773,10 +549,6 @@
 
             document.getElementById('resultsCount').innerHTML = `Showing <strong>${data.length}</strong> software`;
 
-            // Re-enable editing if in edit mode
-            if (isEditMode) {
-                enableEditing();
-            }
         }
 
         function generateStars(rating) {
@@ -967,14 +739,9 @@
             overlay.classList.add('active');
             document.body.style.overflow = 'hidden';
 
-            // Enable editing in modal if in edit mode
-            if (isEditMode) {
-                enableEditing();
-            }
         }
 
-        function closeModal(event) {
-            if (event && event.target !== event.currentTarget) return;
+        function closeModal() {
             const overlay = document.getElementById('modalOverlay');
             overlay.classList.remove('active');
             document.body.style.overflow = '';
@@ -982,7 +749,7 @@
 
         // Download simulation
         function startDownload(name, size) {
-            showToast('success', 'Download Started', `${name} (${size}) is downloading...`);
+
 
             // Find a software item to show progress
             const sw = softwareData.find(s => s.name === name);
@@ -997,7 +764,7 @@
                             progress = 100;
                             clearInterval(interval);
                             document.getElementById(`progressText_${sw.id}`).textContent = 'Download complete!';
-                            showToast('success', 'Download Complete', `${name} has been downloaded successfully!`);
+
                         }
                         document.getElementById(`progressFill_${sw.id}`).style.width = progress + '%';
                         document.getElementById(`progressPercent_${sw.id}`).textContent = Math.round(progress) + '%';
@@ -1010,7 +777,7 @@
 
         // Demo launch
         function launchDemo(name) {
-            showToast('info', 'Launching Demo', `Opening demo version of ${name}...`);
+
 
             // Simulate opening a demo window
             setTimeout(() => {
@@ -1045,35 +812,12 @@
             closeModal();
         }
 
-        // Toast notifications
-        function showToast(type, title, message) {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
 
-            const icons = { success: '✅', info: 'ℹ️', warning: '⚠️' };
-
-            toast.innerHTML = `
-                <span class="toast-icon">${icons[type]}</span>
-                <div class="toast-content">
-                    <h5>${title}</h5>
-                    <p>${message}</p>
-                </div>
-            `;
-
-            container.appendChild(toast);
-
-            setTimeout(() => {
-                toast.remove();
-            }, 3500);
-        }
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeModal();
-                closeImageModal();
-                closeLinkModal();
             }
             if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
                 const input = document.getElementById('searchInput');
@@ -1082,12 +826,50 @@
                     input.focus();
                 }
             }
-            // Ctrl+S to save in edit mode
-            if (e.ctrlKey && e.key === 's' && isEditMode) {
-                e.preventDefault();
-                saveAsHTML();
-            }
         });
 
         // Initialize
         renderSoftware(softwareData);
+
+        // Bind modal close button explicitly
+        const closeBtn = document.getElementById('mainModalCloseBtn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeModal();
+            });
+        }
+
+        // Drag to scroll for category tabs
+        const tabsContainer = document.getElementById('categoryTabs');
+        if (tabsContainer) {
+            let isDown = false;
+            let startX;
+            let scrollLeft;
+
+            tabsContainer.addEventListener('mousedown', (e) => {
+                isDown = true;
+                tabsContainer.classList.add('active');
+                startX = e.pageX - tabsContainer.offsetLeft;
+                scrollLeft = tabsContainer.scrollLeft;
+            });
+
+            tabsContainer.addEventListener('mouseleave', () => {
+                isDown = false;
+                tabsContainer.classList.remove('active');
+            });
+
+            tabsContainer.addEventListener('mouseup', () => {
+                isDown = false;
+                tabsContainer.classList.remove('active');
+            });
+
+            tabsContainer.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - tabsContainer.offsetLeft;
+                const walk = (x - startX) * 1.5; // Scroll speed
+                tabsContainer.scrollLeft = scrollLeft - walk;
+            });
+        }
