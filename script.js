@@ -148,7 +148,7 @@
             },
             {
                 id: 7,
-                name: "Converter",
+                name: "Scan Document",
                 url: "https://rkd-630.github.io/Converter",
                 developer: "SecureVault Inc",
                 category: "security",
