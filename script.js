@@ -12,7 +12,7 @@
         // Software data
         const softwareData = [
             {
-                id: 11,
+                id: 0,
                 name: "Share With",
                 url: "https://rkd-630.github.io/sharewith",
                 developer: "CaptureTech Ltd",
@@ -51,7 +51,7 @@
             },
             {
                 id: 2,
-                name: "Unicon to Krutidev font",
+                name: "Unicon to Krutidev font Converter",
                 url: "https://rkd-630.github.io/postcraft",
                 developer: "SyncSoft Technologies",
                 category: "utilities",
