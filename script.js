@@ -2,11 +2,11 @@
         function toggleTheme() {
             const body = document.body;
             const btn = document.getElementById('themeToggleBtn');
-            body.classList.toggle('light-theme');
-            if (body.classList.contains('light-theme')) {
-                btn.innerHTML = '🌙';
-            } else {
+            body.classList.toggle('dark-theme');
+            if (body.classList.contains('dark-theme')) {
                 btn.innerHTML = '☀️';
+            } else {
+                btn.innerHTML = '🌙';
             }
         }
         // Software data

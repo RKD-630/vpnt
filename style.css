@@ -11,21 +11,9 @@
             --primary-dark: #5A4BD1;
             --secondary: #00CEC9;
             --accent: #FD79A8;
-            --bg-dark: #0F0F1A;
-            --bg-card: #1A1A2E;
-            --bg-card-hover: #222240;
-            --text-primary: #FFFFFF;
-            --text-secondary: #A0A0B8;
-            --border: #2A2A45;
             --success: #00B894;
             --warning: #FDCB6E;
             --danger: #E17055;
-            --header-bg: rgba(15, 15, 26, 0.95);
-            --input-bg: rgba(255, 255, 255, 0.05);
-            --tag-bg: rgba(255, 255, 255, 0.05);
-        }
-
-        body.light-theme {
             --bg-dark: #F3F4F6;
             --bg-card: #FFFFFF;
             --bg-card-hover: #E5E7EB;
@@ -35,6 +23,18 @@
             --header-bg: rgba(243, 244, 246, 0.95);
             --input-bg: rgba(0, 0, 0, 0.05);
             --tag-bg: rgba(0, 0, 0, 0.05);
+        }
+
+        body.dark-theme {
+            --bg-dark: #0F0F1A;
+            --bg-card: #1A1A2E;
+            --bg-card-hover: #222240;
+            --text-primary: #FFFFFF;
+            --text-secondary: #A0A0B8;
+            --border: #2A2A45;
+            --header-bg: rgba(15, 15, 26, 0.95);
+            --input-bg: rgba(255, 255, 255, 0.05);
+            --tag-bg: rgba(255, 255, 255, 0.05);
         }
         body {
             font-family: 'Inter', sans-serif;
