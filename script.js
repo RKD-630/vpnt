@@ -415,8 +415,8 @@
             },
             {
                 id: 22,
-                name: "TingPong",
-                url: "https://rkd-630.github.io/TingPong",
+                name: "Electronic Calculator",
+                url: "https://rkd-630.github.io/electcalcu/",
                 developer: "DocuTech Solutions",
                 category: "utilities",
                 description: "Complete PDF toolkit with editing, conversion, OCR, digital signatures, and AI-powered document summarization capabilities.",
