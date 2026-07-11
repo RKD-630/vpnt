@@ -245,7 +245,7 @@
             {
                 id: 13,
                 name: "Passport Size Photo",
-                url: "https://rkd-630.github.io/passport_photo",
+                url: "https://github.com/RKD-630/pasfo",
                 developer: "DevTech Solutions",
                 category: "development",
                 description: "Next-generation integrated development environment with AI-powered code completion, real-time collaboration, and support for 50+ programming languages.",
