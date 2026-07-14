@@ -122,9 +122,12 @@ function setupEventListeners() {
 
     catButtons.forEach(btn => {
         btn.addEventListener('click', () => {
-            const tag = btn.dataset.tag;
-            const country = currentMode === 'India' ? 'India' : '';
-            fetchStations('', country, tag);
+            const tag = btn.dataset.tag || '';
+            const state = btn.dataset.state || '';
+            const query = btn.dataset.query || '';
+            const overrideCountry = btn.dataset.country;
+            const country = overrideCountry !== undefined ? overrideCountry : (currentMode === 'India' ? 'India' : '');
+            fetchStations(query, country, tag, state);
             updateActiveCat(btn.textContent);
             switchView('discovery');
         });
@@ -275,7 +278,7 @@ function setupEventListeners() {
 }
 
 // API Functions
-async function fetchStations(query = '', country = '', tag = '') {
+async function fetchStations(query = '', country = '', tag = '', state = '') {
     lastQuery = query;
     lastCountry = country;
     lastTag = tag;
@@ -289,6 +292,9 @@ async function fetchStations(query = '', country = '', tag = '') {
     }
     if (tag) {
         url += `&tag=${encodeURIComponent(tag)}`;
+    }
+    if (state) {
+        url += `&state=${encodeURIComponent(state)}`;
     }
     if (query) {
         url += `&name=${encodeURIComponent(query)}`;
@@ -598,6 +604,11 @@ function updatePlayerUI(station) {
     const defaultMini = DEFAULT_LOGO;
 
     currentStationName.textContent = name;
+    if (name.length > 20) {
+        currentStationName.classList.add('marquee-text');
+    } else {
+        currentStationName.classList.remove('marquee-text');
+    }
     currentStationMeta.textContent = `${country} • ${tags}`;
     
     // Set up main image with timeout and error fallback
