@@ -1,157 +1,278 @@
-<!DOCTYPE html><html lang="en"><head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SoftwareHub - Your Digital Toolkit</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global FM | Internet Radio Discovery</title>
+    <meta name="description" content="Discover and stream world FM internet stations with Global FM. Rapidly scan, play, and save your favorite stations.">
     
-<link rel="stylesheet" href="style.css?v=2" /></head>
-<body class="">
-    <!-- News Ticker -->
-    <div class="ticker-wrap">
-        <div class="ticker" id="ticker">
-            <div class="ticker-item"><span class="badge">🔥 NEW</span> CodeForge IDE v4.2 released with AI-powered code completion</div>
-            <div class="ticker-item"><span class="badge">⚡ UPDATE</span> PixelCraft Studio adds new 3D rendering engine — 40% faster exports</div>
-            <div class="ticker-item"><span class="badge">🎉 FEATURED</span> TaskFlow Pro wins "Best Productivity App 2026" award</div>
-            <div class="ticker-item"><span class="badge">🔒 SECURITY</span> ShieldGuard 8.0 with real-time zero-day threat protection</div>
-            <div class="ticker-item"><span class="badge"> NEW</span> VideoMaster Pro now supports 8K video editing natively</div>
-            <div class="ticker-item"><span class="badge">☁️ UPDATE</span> CloudSync Manager introduces E2E encrypted sync protocol</div>
-            <div class="ticker-item"><span class="badge">🆓 FREE</span> DataVault Encrypt — 12-month premium free for new users</div>
-            <div class="ticker-item"><span class="badge">🎵 NEW</span> SoundWave Studio adds spatial audio mixing tools</div>
-            <div class="ticker-item"><span class="badge">📊 UPDATE</span> NetworkPro Monitor now with IoT device scanning</div>
-            <div class="ticker-item"><span class="badge">📄 NEW</span> PDFMaster Suite v3.0 with AI document summarization</div>
-            <div class="ticker-item"><span class="badge"> UPDATE</span> ScreenCapture Pro adds automatic scroll capture</div>
-            <div class="ticker-item"><span class="badge">🗄️ NEW</span> DatabaseForge 6.0 with multi-cloud query support</div>
-            <!-- Duplicate for seamless scroll -->
-            <div class="ticker-item"><span class="badge"> NEW</span> CodeForge IDE v4.2 released with AI-powered code completion</div>
-            <div class="ticker-item"><span class="badge">⚡ UPDATE</span> PixelCraft Studio adds new 3D rendering engine — 40% faster exports</div>
-            <div class="ticker-item"><span class="badge">🎉 FEATURED</span> TaskFlow Pro wins "Best Productivity App 2026" award</div>
-            <div class="ticker-item"><span class="badge">🔒 SECURITY</span> ShieldGuard 8.0 with real-time zero-day threat protection</div>
-            <div class="ticker-item"><span class="badge">🎬 NEW</span> VideoMaster Pro now supports 8K video editing natively</div>
-            <div class="ticker-item"><span class="badge">☁️ UPDATE</span> CloudSync Manager introduces E2E encrypted sync protocol</div>
-            <div class="ticker-item"><span class="badge">🆓 FREE</span> DataVault Encrypt — 12-month premium free for new users</div>
-            <div class="ticker-item"><span class="badge">🎵 NEW</span> SoundWave Studio adds spatial audio mixing tools</div>
-            <div class="ticker-item"><span class="badge"> UPDATE</span> NetworkPro Monitor now with IoT device scanning</div>
-            <div class="ticker-item"><span class="badge">📄 NEW</span> PDFMaster Suite v3.0 with AI document summarization</div>
-            <div class="ticker-item"><span class="badge">📸 UPDATE</span> ScreenCapture Pro adds automatic scroll capture</div>
-            <div class="ticker-item"><span class="badge">🗄️ NEW</span> DatabaseForge 6.0 with multi-cloud query support</div>
-        </div>
-    </div>
-
-    <!-- Header -->
-    <header>
-        <div class="header-inner">
-            <a href="#" class="logo">
-                <div class="logo-icon">🖥️</div>
-                <div class="logo-text editable-text">Software<span>Hub</span></div>
-            </a>
-            <div class="search-container">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="searchInput" placeholder="Search software by name, category, or tags..." oninput="filterSoftware()" />
-            </div>
-            <div class="header-actions">
-                <button class="btn-header btn-outline" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Theme" style="padding: 10px 15px;">🌙</button>
-                <button class="btn-header btn-outline" onclick="alert('Sign in feature coming soon!')">Sign In</button>
-                <button class="btn-header btn-primary">Get Started</button>
-            </div>
-        </div>
-    </header>
-
-
-    <!-- Category Section -->
-    <div class="category-section">
-        <div class="section-header">
-            <h2 class="section-title editable-text">Browse <span class="editable-text">Software</span></h2>
-        </div>
-        <div class="category-tabs" id="categoryTabs">
-            <button class="category-tab active" data-category="all" onclick="filterByCategory('all', this)">All Software <span class="tab-count">12</span></button>
-            <button class="category-tab" data-category="development" onclick="filterByCategory('development', this)">💻 Development <span class="tab-count">2</span></button>
-            <button class="category-tab" data-category="design" onclick="filterByCategory('design', this)">🎨 Design <span class="tab-count">1</span></button>
-            <button class="category-tab" data-category="productivity" onclick="filterByCategory('productivity', this)">📋 Productivity <span class="tab-count">1</span></button>
-            <button class="category-tab" data-category="security" onclick="filterByCategory('security', this)">🔒 Security <span class="tab-count">2</span></button>
-            <button class="category-tab" data-category="multimedia" onclick="filterByCategory('multimedia', this)">🎬 Multimedia <span class="tab-count">2</span></button>
-            <button class="category-tab" data-category="utilities" onclick="filterByCategory('utilities', this)">🔧 Utilities <span class="tab-count">4</span></button>
-        </div>
-        <div class="controls-bar">
-            <span class="results-count" id="resultsCount">Showing <strong>12</strong> software</span>
-            <div class="view-controls">
-                <select class="sort-select" id="sortSelect" onchange="sortSoftware()">
-                    <option value="popular">Most Popular</option>
-                    <option value="rating">Highest Rated</option>
-                    <option value="newest">Newest First</option>
-                    <option value="name">Alphabetical</option>
-                    <option value="size">Size (Small First)</option>
-                </select>
-                <button class="view-btn active" id="gridBtn" onclick="setView('grid')" title="Grid View">⊞</button>
-                <button class="view-btn" id="listBtn" onclick="setView('list')" title="List View">☰</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Software Grid -->
-    <div class="software-grid" id="softwareGrid"></div>
-
-    <!-- Modal -->
-    <div class="modal-overlay" id="modalOverlay" onclick="if(event.target === this) closeModal()">
-        <div class="modal" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <h3 id="modalTitle">Software Details</h3>
-                <button class="modal-close" id="mainModalCloseBtn">✕</button>
-            </div>
-            <div class="modal-body" id="modalBody">
-                <!-- Dynamic content -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <footer>
-        <div class="footer-inner">
-            <div class="footer-grid">
-                <div class="footer-brand">
-                    <a href="#" class="logo">
-                        <div class="logo-icon">🖥️</div>
-                        <div class="logo-text editable-text">Software<span>Hub</span></div>
-                    </a>
-                    <p class="editable-text">Your one-stop destination for discovering, trying, and downloading the best software tools. Curated, verified, and trusted by millions of users worldwide.</p>
-                </div>
-                <div class="footer-col">
-                    <h4 class="editable-text">Categories</h4>
-                    <a href="#" class="">Development</a>
-                    <a href="#" class="">Design</a>
-                    <a href="#" class="">Productivity</a>
-                    <a href="#" class="">Security</a>
-                    <a href="#" class="">Multimedia</a>
-                    <a href="#" class="">Utilities</a>
-                </div>
-                <div class="footer-col">
-                    <h4 class="editable-text">Resources</h4>
-                    <a href="#" class="">Documentation</a>
-                    <a href="#" class="">API Reference</a>
-                    <a href="#" class="">Community Forum</a>
-                    <a href="#" class="">Blog</a>
-                    <a href="#" class="">Tutorials</a>
-                </div>
-                <div class="footer-col">
-                    <h4 class="editable-text">Company</h4>
-                    <a href="#" class="">About Us</a>
-                    <a href="#" class="">Careers</a>
-                    <a href="#" class="">Privacy Policy</a>
-                    <a href="#" class="">Terms of Service</a>
-                    <a href="#" class="">Contact</a>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p class="editable-text">© 2026 SoftwareHub. All rights reserved.</p>
-                <div class="social-links">
-                    <a href="#" class="social-link" title="Twitter"></a>
-                    <a href="#" class="social-link" title="GitHub"></a>
-                    <a href="#" class="social-link" title="Discord"></a>
-                    <a href="#" class="social-link" title="YouTube">▶</a>
-                </div>
-            </div>
-        </div>
-    </footer>
-
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
     
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Background elements for visual flair -->
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        
+        <header>
+            <div class="logo">
+                <i data-lucide="radio"></i>
+                <span>Global FM</span>
+            </div>
+            <div class="search-bar">
+                <input type="text" id="station-search" placeholder="Scan world stations (country, name, tag)...">
+                <button id="scan-btn" class="primary-btn" title="Scan World Stations">
+                    <i data-lucide="globe"></i>
+                    <span>Global</span>
+                </button>
+                <button id="scan-india-btn" class="india-btn" title="Scan Indian Stations">
+                    <i data-lucide="map-pin"></i>
+                    <span>India</span>
+                </button>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button id="fullscreen-btn" class="icon-btn theme-btn" title="Toggle Fullscreen">
+                    <i data-lucide="maximize" id="fullscreen-icon"></i>
+                </button>
+                <button id="refresh-btn" class="icon-btn theme-btn" title="Reload Stations">
+                    <i data-lucide="refresh-cw"></i>
+                </button>
+                <button id="theme-toggle" class="icon-btn theme-btn" title="Toggle Light/Dark Mode">
+                    <i data-lucide="moon" id="theme-icon"></i>
+                </button>
+            </div>
+        </header>
 
+        <nav class="main-tabs glass" id="main-tabs">
+            <button class="tab-btn active" data-tab="discovery">
+                <i data-lucide="search"></i>
+                <span>Discovery</span>
+            </button>
+            <button class="tab-btn action-btn" id="smart-auto-scan-btn" style="color: var(--primary-color); font-weight: bold;">
+                <i data-lucide="zap"></i>
+                <span>Auto Scan</span>
+            </button>
+            <button class="tab-btn" data-tab="playlist">
+                <i data-lucide="list-music"></i>
+                <span>Playlist</span>
+            </button>
+            <button class="tab-btn" data-tab="scanner">
+                <i data-lucide="radio"></i>
+                <span>FM Scanner</span>
+            </button>
+        </nav>
 
-<script src="script.js?v=2"></script></body></html>
+        <div id="discovery-view">
+            <nav class="category-nav glass" id="categories-bar">
+                <span class="nav-label" id="current-mode-label">India Categories:</span>
+                <div class="cat-scroll" id="india-cats" style="display: flex;">
+                    <button class="cat-btn active" data-tag="">All</button>
+                    <button class="cat-btn" data-tag="hindi">Hindi</button>
+                    <button class="cat-btn" data-tag="news">News</button>
+                    <button class="cat-btn" data-tag="bangla">Bangla</button>
+                    <button class="cat-btn" data-tag="music">Music</button>
+                    <button class="cat-btn" data-tag="dj remix">DJ - Remix</button>
+                    <button class="cat-btn" data-tag="tamil">Tamil</button>
+                    <button class="cat-btn" data-tag="kannad">Kannad</button>
+                </div>
+                <div class="cat-scroll" id="global-cats" style="display: none;">
+                    <button class="cat-btn active" data-tag="">All</button>
+                    <button class="cat-btn" data-tag="bbc news">BBC NEWS</button>
+                    <button class="cat-btn" data-tag="us news">US NEWS</button>
+                    <button class="cat-btn" data-tag="world news">World News</button>
+                    <button class="cat-btn" data-tag="dance music">Dance Music</button>
+                    <button class="cat-btn" data-tag="educational">Educational</button>
+                    <button class="cat-btn" data-tag="sports">Sports</button>
+                </div>
+            </nav>
+
+        <main>
+            <section class="hero-section">
+                <div class="now-playing-card glass">
+                    <div class="station-visual">
+                        <img id="current-station-info-img" src="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%93%BB%3C%2Ftext%3E%3C%2Fsvg%3E" alt="Station Logo" style="cursor: pointer;" title="Add to Playlist">
+                    </div>
+                    <div class="station-details">
+                        <span class="status-badge" id="player-status">Ready</span>
+                        <h1 id="current-station-name" style="font-size: 3.5rem; line-height: 1.1; margin: 10px 0; padding-bottom: 10px;">Choose a Station</h1>
+                        <p id="current-station-meta">Select a station to start broadcasting</p>
+                        <div class="station-actions" style="display: none;">
+                            <button id="add-to-playlist-btn" class="secondary-btn">
+                                <i data-lucide="plus-circle"></i>
+                            </button>
+                        </div>
+                        <div id="queue-text-info" style="display: flex; align-items: center; justify-content: center; font-size: 1rem; color: var(--text-secondary); max-width: 100%; overflow: hidden; margin-top: 15px; width: 100%;">
+                            <span id="queue-ticker-text" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-weight: bold; transition: opacity 0.3s ease; letter-spacing: 0.5px; text-shadow: 2px 2px 4px #000000, 0px 0px 10px #000000;">--</span>
+                        </div>
+                    </div>
+
+                    <div class="banner-right">
+                        <div class="equalizer-container">
+                            <div class="colorful-equalizer" id="banner-equalizer">
+                                <div class="eq-bar"></div>
+                                <div class="eq-bar"></div>
+                                <div class="eq-bar"></div>
+                                <div class="eq-bar"></div>
+                                <div class="eq-bar"></div>
+                                <div class="eq-bar"></div>
+                                <div class="eq-bar"></div>
+                                <div class="eq-bar"></div>
+                                <div class="eq-bar"></div>
+                                <div class="eq-bar"></div>
+                                <div class="eq-bar"></div>
+                                <div class="eq-bar"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="volume-controls glass" style="margin: 1.5rem auto 0 auto; padding: 1rem 1.5rem; border-radius: 16px; display: flex; align-items: center; gap: 1rem; width: 100%; max-width: 900px; flex-wrap: nowrap; overflow-x: auto; white-space: nowrap;">
+                    <button id="mute-btn" class="control-btn" title="Mute/Unmute">
+                        <i data-lucide="volume-2" id="volume-icon"></i>
+                    </button>
+                    <div class="volume-slider-container" style="flex-grow: 1; display: flex; align-items: center; min-width: 100px;">
+                        <input type="range" id="volume-slider" min="0" max="100" value="80" style="width: 100%;">
+                    </div>
+                    <button id="eq-hd-btn" class="control-btn" title="Toggle HD Quality & Bass/Treble" style="border: 1px solid var(--primary-color); border-radius: 8px; padding: 4px 12px; font-size: 0.85rem; font-weight: bold; background: transparent; color: inherit;">
+                        HD / EQ
+                    </button>
+                    <button id="dj-boost-btn" class="control-btn" title="Toggle DJ / Beats Boost" style="border: 1px solid var(--accent-color); border-radius: 8px; padding: 4px 12px; font-size: 0.85rem; font-weight: bold; background: transparent; color: inherit;">
+                        DJ Boost
+                    </button>
+                    <div class="vol-boost-check" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: bold;">
+                        <input type="checkbox" id="vol-boost-check" style="width: 16px; height: 16px; accent-color: var(--primary-color);">
+                        <label for="vol-boost-check" style="cursor: pointer;">Vol Boost</label>
+                    </div>
+                </div>
+            </section>
+
+            <section class="content-grid" id="discovery-grid">
+                <div class="stations-column">
+                    <div class="section-header">
+                        <h2>Discovered Stations</h2>
+                        <span id="results-count">0 stations found</span>
+                    </div>
+                    <div id="stations-grid" class="stations-list">
+                        <!-- Stations will be injected here -->
+                        <div class="loader-container" id="main-loader" style="display: none;">
+                            <div class="loader"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="playlist-column desktop-playlist">
+                    <div class="section-header">
+                        <h2>Quick Playlist</h2>
+                    </div>
+                    <div id="quick-playlist-list" class="stations-list">
+                        <!-- Playlist items will be injected here -->
+                    </div>
+                </aside>
+            </section>
+        </div>
+
+        <div id="playlist-view" style="display: none;">
+            <section class="content-grid-single">
+                <div class="section-header">
+                    <h2>Your Full Playlist</h2>
+                </div>
+                <div id="full-playlist-list" class="stations-list">
+                    <!-- Playlist will be here -->
+                </div>
+            </section>
+        </div>
+
+        <div id="scanner-view" style="display: none;">
+            <section class="scanner-container glass">
+                <div class="scanner-header">
+                    <h2>Manual FM Scanner</h2>
+                    <p>Tune into a specific frequency and add your favorite stations manually.</p>
+                </div>
+                
+                <div class="scanner-layout">
+                    <div class="tuner-column">
+                        <div class="frequency-display">
+                            <span id="freq-value">91.1</span>
+                            <span class="unit">MHz</span>
+                        </div>
+                        <div class="dial-container">
+                            <input type="range" id="freq-slider" min="87.5" max="108.0" step="0.1" value="91.1">
+                        </div>
+                        <div class="scanner-visual">
+                            <div class="scan-line" id="scan-line"></div>
+                            <div class="signal-bars">
+                                <span></span><span></span><span></span><span></span><span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-column glass">
+                        <h3>Add New Station</h3>
+                        <div class="input-group">
+                            <label>Station Name</label>
+                            <input type="text" id="custom-name" placeholder="e.g. My Favorite FM">
+                        </div>
+                        <div class="input-group">
+                            <label>Stream URL (m3u8, mp3, etc.)</label>
+                            <input type="text" id="custom-url" placeholder="https://...">
+                        </div>
+                        <div class="input-group">
+                            <label>Logo/Favicon URL (Optional)</label>
+                            <input type="text" id="custom-icon" placeholder="https://...">
+                        </div>
+                        <div class="scanner-actions">
+                            <button id="add-custom-btn" class="primary-btn">
+                                <i data-lucide="plus"></i>
+                                Add to My Radio
+                            </button>
+                            <div class="divider"><span>OR</span></div>
+                            <div class="scanner-auto-actions">
+                                <button id="auto-scan-btn" class="accent-btn">
+                                    <i data-lucide="zap"></i>
+                                    Auto Scan Frequencies
+                                </button>
+                                <button id="save-all-btn" class="secondary-btn" style="display: none;">
+                                    <i data-lucide="save"></i>
+                                    Save All Discovered
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+        <footer class="player-controls glass" style="justify-content: center; display: flex; padding-top: 15px; padding-bottom: 15px;">
+            <div class="main-controls">
+                <button id="prev-btn" class="control-btn" title="Previous">
+                    <i data-lucide="skip-back"></i>
+                </button>
+                <button id="play-pause-btn" class="control-btn play-btn" title="Play/Pause">
+                    <i data-lucide="play" id="play-icon"></i>
+                </button>
+                <button id="next-btn" class="control-btn" title="Next">
+                    <i data-lucide="skip-forward"></i>
+                </button>
+            </div>
+        </footer >
+
+        <!-- Hidden Audio Element -->
+        <audio id="audio-player" autoplay preload="auto"></audio>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>
