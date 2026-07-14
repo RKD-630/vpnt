@@ -124,10 +124,11 @@ function setupEventListeners() {
         btn.addEventListener('click', () => {
             const tag = btn.dataset.tag || '';
             const state = btn.dataset.state || '';
+            const language = btn.dataset.language || '';
             const query = btn.dataset.query || '';
             const overrideCountry = btn.dataset.country;
             const country = overrideCountry !== undefined ? overrideCountry : (currentMode === 'India' ? 'India' : '');
-            fetchStations(query, country, tag, state);
+            fetchStations(query, country, tag, state, language);
             updateActiveCat(btn.textContent);
             switchView('discovery');
         });
@@ -278,7 +279,7 @@ function setupEventListeners() {
 }
 
 // API Functions
-async function fetchStations(query = '', country = '', tag = '', state = '') {
+async function fetchStations(query = '', country = '', tag = '', state = '', language = '') {
     lastQuery = query;
     lastCountry = country;
     lastTag = tag;
@@ -295,6 +296,9 @@ async function fetchStations(query = '', country = '', tag = '', state = '') {
     }
     if (state) {
         url += `&state=${encodeURIComponent(state)}`;
+    }
+    if (language) {
+        url += `&language=${encodeURIComponent(language)}`;
     }
     if (query) {
         url += `&name=${encodeURIComponent(query)}`;

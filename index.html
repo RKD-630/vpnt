@@ -14,6 +14,9 @@
     <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6366f1">
+    
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -78,9 +81,11 @@
                     <button class="cat-btn" data-tag="hindi">Hindi</button>
                     <button class="cat-btn" data-tag="" data-state="Uttar Pradesh">UP Wale</button>
                     <button class="cat-btn" data-tag="news">News</button>
-                    <button class="cat-btn" data-tag="bangla">Bangla</button>
+                    <button class="cat-btn" data-tag="" data-state="West Bengal">Bangla</button>
                     <button class="cat-btn" data-tag="music">Music</button>
                     <button class="cat-btn" data-tag="dj remix">DJ - Remix</button>
+                    <button class="cat-btn" data-tag="" data-state="Bihar">Bihar</button>
+                    <button class="cat-btn" data-language="bhojpuri">Bhojpuri</button>
                     <button class="cat-btn" data-tag="tamil">Tamil</button>
                     <button class="cat-btn" data-tag="kannad">Kannad</button>
                 </div>
@@ -269,13 +274,24 @@
         </footer >
 
         <!-- Hidden Audio Element -->
-        <audio id="audio-player" autoplay preload="auto"></audio>
+        <audio id="audio-player" autoplay preload="auto" playsinline x-webkit-airplay="allow"></audio>
     </div>
 
     <script src="script.js"></script>
     <script>
         // Initialize Lucide icons
         lucide.createIcons();
+
+        // Register Service Worker for background play / PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(registration => {
+                    console.log('SW registered: ', registration);
+                }).catch(registrationError => {
+                    console.log('SW registration failed: ', registrationError);
+                });
+            });
+        }
     </script>
 </body>
 </html>
