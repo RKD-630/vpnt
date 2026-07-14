@@ -655,6 +655,13 @@ h1 {
     z-index: 1000;
 }
 
+:fullscreen .player-controls,
+:-webkit-full-screen .player-controls {
+    min-height: 108px;
+    padding-top: 18px !important;
+    padding-bottom: 18px !important;
+}
+
 .player-info {
     display: flex;
     align-items: center;
