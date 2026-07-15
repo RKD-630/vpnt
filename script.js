@@ -797,9 +797,32 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
         }
 
         function applyPdfEnhancement(val) {
-            const normalized = val / 50; 
-            document.documentElement.style.setProperty('--pdf-enhance-contrast', normalized);
-            document.documentElement.style.setProperty('--pdf-enhance-brightness', normalized);
+            // val is 0 to 100. Default is 50.
+            // 0 -> Darkness
+            // 50 -> Normal
+            // 100 -> High HD Quality (High Contrast, Sharpness, brightness)
+            
+            let contrast = 1;
+            let brightness = 1;
+            let saturate = 1;
+            
+            if (val < 50) {
+                // Darkness / Dimming
+                const factor = val / 50; // 0 to 1
+                brightness = 0.4 + (0.6 * factor); // 40% to 100%
+                contrast = 0.8 + (0.2 * factor); // 80% to 100%
+                saturate = 0.5 + (0.5 * factor); // 50% to 100%
+            } else {
+                // HD Enhance / Sharpness
+                const factor = (val - 50) / 50; // 0 to 1
+                brightness = 1 + (0.2 * factor); // up to 120%
+                contrast = 1 + (0.6 * factor); // up to 160% for crisp text
+                saturate = 1 + (0.5 * factor); // up to 150%
+            }
+            
+            document.documentElement.style.setProperty('--pdf-enhance-contrast', contrast);
+            document.documentElement.style.setProperty('--pdf-enhance-brightness', brightness);
+            document.documentElement.style.setProperty('--pdf-enhance-saturate', saturate);
         }
 
         let zoomTimeout = null;

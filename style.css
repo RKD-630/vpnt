@@ -352,14 +352,15 @@
         :root {
             --pdf-enhance-contrast: 1;
             --pdf-enhance-brightness: 1;
+            --pdf-enhance-saturate: 1;
         }
 
         .bg-mode-white canvas {
-            filter: contrast(var(--pdf-enhance-contrast)) brightness(var(--pdf-enhance-brightness));
+            filter: contrast(var(--pdf-enhance-contrast)) brightness(var(--pdf-enhance-brightness)) saturate(var(--pdf-enhance-saturate));
         }
         .bg-mode-black canvas {
-            filter: invert(1) hue-rotate(180deg) brightness(calc(0.95 * var(--pdf-enhance-brightness))) contrast(var(--pdf-enhance-contrast));
+            filter: invert(1) hue-rotate(180deg) brightness(calc(0.95 * var(--pdf-enhance-brightness))) contrast(var(--pdf-enhance-contrast)) saturate(var(--pdf-enhance-saturate));
         }
         .bg-mode-dim canvas {
-            filter: sepia(0.35) brightness(calc(0.9 * var(--pdf-enhance-brightness))) contrast(calc(0.9 * var(--pdf-enhance-contrast)));
+            filter: sepia(0.35) brightness(calc(0.9 * var(--pdf-enhance-brightness))) contrast(calc(0.9 * var(--pdf-enhance-contrast))) saturate(var(--pdf-enhance-saturate));
         }
