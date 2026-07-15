@@ -439,6 +439,42 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
             document.body.classList.toggle('dark-mode');
         }
 
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        let isDraggingToolbar = false;
+        let toolbarStartX = 0;
+        let toolbarScrollLeft = 0;
+
+        function startToolbarDrag(e) {
+            isDraggingToolbar = true;
+            const toolbar = document.getElementById('headerToolbar');
+            toolbarStartX = e.pageX - toolbar.offsetLeft;
+            toolbarScrollLeft = toolbar.scrollLeft;
+        }
+
+        function stopToolbarDrag() {
+            isDraggingToolbar = false;
+        }
+
+        function toolbarDragMove(e) {
+            if (!isDraggingToolbar) return;
+            e.preventDefault(); 
+            const toolbar = document.getElementById('headerToolbar');
+            const x = e.pageX - toolbar.offsetLeft;
+            const walk = (x - toolbarStartX) * 1.5; 
+            toolbar.scrollLeft = toolbarScrollLeft - walk;
+        }
+
         let pdfBgMode = 0; // 0: White, 1: Black, 2: Dim
         function togglePdfBackground() {
             pdfBgMode = (pdfBgMode + 1) % 3;

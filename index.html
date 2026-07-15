@@ -79,11 +79,11 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                 </svg>
             </button>
-            <div class="text-white text-center flex-1 mx-4">
-                <h3 id="readerTitle" class="font-semibold truncate max-w-[200px] md:max-w-md mx-auto"></h3>
+            <div class="text-white text-center flex-1 mx-4 min-w-0">
+                <h3 id="readerTitle" class="font-semibold truncate mx-auto"></h3>
                 <p id="pageIndicator" class="text-sm opacity-80">Pages 1-2 of 10</p>
             </div>
-            <div class="flex items-center gap-2">
+            <div id="headerToolbar" class="flex items-center gap-2 overflow-x-auto hide-scrollbar cursor-grab active:cursor-grabbing max-w-[55vw] md:max-w-none py-1" onmousedown="startToolbarDrag(event)" onmouseleave="stopToolbarDrag()" onmouseup="stopToolbarDrag()" onmousemove="toolbarDragMove(event)">
                 <!-- View Mode Toggle -->
                 <button onclick="toggleViewMode()" id="viewModeBtn" class="mode-btn active-mode p-3 rounded-full bg-white/20 backdrop-blur-md transition-all text-white" title="Toggle Two-Page View">
                     <svg id="viewModeIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -240,12 +240,20 @@
                             App Theme
                         </button>
                     </div>
-                    <button onclick="toggleViewMode()" class="py-3 px-4 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/50 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 rounded-xl font-bold text-sm w-full transition-colors shadow-sm flex items-center justify-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                        </svg>
-                        Toggle Two-Page View
-                    </button>
+                    <div class="flex gap-4 justify-around">
+                        <button onclick="toggleViewMode()" class="py-3 px-4 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/50 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 rounded-xl font-bold text-sm flex-1 transition-colors shadow-sm flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                            Two-Page
+                        </button>
+                        <button onclick="toggleFullScreen()" class="py-3 px-4 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/50 dark:hover:bg-emerald-800 text-emerald-700 dark:text-emerald-300 rounded-xl font-bold text-sm flex-1 transition-colors shadow-sm flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                            </svg>
+                            Full Screen
+                        </button>
+                    </div>
                 </div>
             </div>
 
