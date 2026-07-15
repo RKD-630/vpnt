@@ -1,884 +1,837 @@
-// Configuration
-const API_BASE = 'https://de1.api.radio-browser.info/json';
-const DEFAULT_LIMIT = 50;
-const DEFAULT_LOGO = 'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%93%BB%3C%2Ftext%3E%3C%2Fsvg%3E';
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// State
-let currentStations = [];
-let currentPlaylist = JSON.parse(localStorage.getItem('fm_playlist')) || [];
-let currentStationIndex = -1;
-let currentMode = 'India'; // 'Global' or 'India'
-let isMuted = false;
-let lastVolume = 80;
-let isHDEQEnabled = false;
-let isDJBoostEnabled = false;
-let isVolBoostEnabled = false;
-let isSmartScanning = false;
-let smartScanTimeout = null;
-let playCheckTimeout = null;
-let queueTickerInterval = null;
-let showingNextInQueue = true;
-let lastQuery = '';
-let lastCountry = '';
-let lastTag = '';
+        // State
+        let books = [];
+        let currentBook = null;
+        let currentPage = 1;
+        let pdfDoc = null;
+        let scale = 1.5;
+        let isDarkMode = false;
+        let isZoomed = false;
+        let twoPageMode = true; // Two-page view enabled by default
 
-// DOM Elements
-const audioPlayer = document.getElementById('audio-player');
-const stationsGrid = document.getElementById('stations-grid');
-const playlistList = document.getElementById('playlist-list');
-const searchInput = document.getElementById('station-search');
-const scanBtn = document.getElementById('scan-btn');
-const scanIndiaBtn = document.getElementById('scan-india-btn');
-const categoriesBar = document.getElementById('categories-bar');
-const modeLabel = document.getElementById('current-mode-label');
-const indiaCats = document.getElementById('india-cats');
-const globalCats = document.getElementById('global-cats');
-const catButtons = document.querySelectorAll('.cat-btn');
-const playPauseBtn = document.getElementById('play-pause-btn');
-const playIcon = document.getElementById('play-icon');
-const prevBtn = document.getElementById('prev-btn');
-const nextBtn = document.getElementById('next-btn');
-const muteBtn = document.getElementById('mute-btn');
-const volumeIcon = document.getElementById('volume-icon');
-const volumeSlider = document.getElementById('volume-slider');
-const playerStatus = document.getElementById('player-status');
-const currentStationName = document.getElementById('current-station-name');
-const currentStationMeta = document.getElementById('current-station-meta');
-const currentStationImg = document.getElementById('current-station-info-img');
-const addToPlaylistBtn = document.getElementById('add-to-playlist-btn');
-const resultsCount = document.getElementById('results-count');
-const mainLoader = document.getElementById('main-loader');
-const nowPlayingCard = document.querySelector('.now-playing-card');
-const fullscreenBtn = document.getElementById('fullscreen-btn');
-const refreshBtn = document.getElementById('refresh-btn');
-const themeToggle = document.getElementById('theme-toggle');
-const themeIcon = document.getElementById('theme-icon');
-const eqHdBtn = document.getElementById('eq-hd-btn');
-const djBoostBtn = document.getElementById('dj-boost-btn');
-const volBoostCheck = document.getElementById('vol-boost-check');
-const smartAutoScanBtn = document.getElementById('smart-auto-scan-btn');
-const queueTickerText = document.getElementById('queue-ticker-text');
+        // Handle file imports
+        async function handleFiles(files) {
+            const pdfFiles = Array.from(files).filter(file => file.type === 'application/pdf' || file.name.endsWith('.pdf'));
+            
+            if (pdfFiles.length === 0) {
+                alert('No PDF files found!');
+                return;
+            }
 
-// New UI Elements
-const mainTabs = document.querySelectorAll('.tab-btn:not(.action-btn)');
-const views = {
-    discovery: document.getElementById('discovery-view'),
-    playlist: document.getElementById('playlist-view'),
-    scanner: document.getElementById('scanner-view')
-};
-const quickPlaylistList = document.getElementById('quick-playlist-list');
-const fullPlaylistList = document.getElementById('full-playlist-list');
-
-// Scanner Elements
-const freqSlider = document.getElementById('freq-slider');
-const freqValue = document.getElementById('freq-value');
-const scanLine = document.getElementById('scan-line');
-const customNameInput = document.getElementById('custom-name');
-const customUrlInput = document.getElementById('custom-url');
-const customIconInput = document.getElementById('custom-icon');
-const addCustomBtn = document.getElementById('add-custom-btn');
-const autoScanBtn = document.getElementById('auto-scan-btn');
-const saveAllBtn = document.getElementById('save-all-btn');
-const signalBars = document.querySelectorAll('.signal-bars span');
-
-let discoveredFrequencies = [];
-
-// Initialize
-function init() {
-    setupEventListeners();
-    fetchStations('', 'India'); // Initial load (Trending)
-    renderPlaylist();
-    updateVolume(80);
-    loadTheme();
-    
-    // Auto-adjusting helper for mobile
-    window.addEventListener('resize', () => {
-        lucide.createIcons();
-    });
-}
-
-function setupEventListeners() {
-    scanBtn.addEventListener('click', () => {
-        const query = searchInput.value.trim();
-        currentMode = 'Global';
-        modeLabel.textContent = 'Global Categories:';
-        indiaCats.style.display = 'none';
-        globalCats.style.display = 'flex';
-        fetchStations(query);
-        updateActiveCat('All');
-        switchView('discovery');
-    });
-
-    scanIndiaBtn.addEventListener('click', () => {
-        searchInput.value = '';
-        currentMode = 'India';
-        modeLabel.textContent = 'India Categories:';
-        globalCats.style.display = 'none';
-        indiaCats.style.display = 'flex';
-        fetchStations('', 'India');
-        updateActiveCat('All');
-        switchView('discovery');
-    });
-
-    catButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tag = btn.dataset.tag || '';
-            const state = btn.dataset.state || '';
-            const language = btn.dataset.language || '';
-            const query = btn.dataset.query || '';
-            const overrideCountry = btn.dataset.country;
-            const country = overrideCountry !== undefined ? overrideCountry : (currentMode === 'India' ? 'India' : '');
-            fetchStations(query, country, tag, state, language);
-            updateActiveCat(btn.textContent);
-            switchView('discovery');
-        });
-    });
-
-    searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            fetchStations(searchInput.value.trim());
-            switchView('discovery');
+            const btn = document.querySelector('.import-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<div class="loading-spinner w-5 h-5 border-2"></div>';
+            
+            for (let file of pdfFiles) {
+                await addBook(file);
+            }
+            
+            btn.innerHTML = originalText;
+            updateLibrary();
         }
-    });
 
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => {
-            fetchStations(lastQuery, lastCountry, lastTag);
-        });
-    }
+        async function addBook(file) {
+            const book = {
+                id: Date.now() + Math.random(),
+                file: file,
+                name: file.name.replace('.pdf', ''),
+                size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+                cover: null
+            };
 
-    if (fullscreenBtn) {
-        fullscreenBtn.addEventListener('click', () => {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => console.log(err));
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const page = await pdf.getPage(1);
+                
+                const canvas = document.createElement('canvas');
+                const viewport = page.getViewport({ scale: 0.3 });
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                
+                const context = canvas.getContext('2d');
+                await page.render({
+                    canvasContext: context,
+                    viewport: viewport
+                }).promise;
+                
+                book.cover = canvas.toDataURL();
+                book.totalPages = pdf.numPages;
+            } catch (error) {
+                console.error('Error generating cover:', error);
+                book.cover = null;
+            }
+
+            books.push(book);
+        }
+
+        function updateLibrary() {
+            const grid = document.getElementById('booksGrid');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (books.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            grid.innerHTML = books.map((book, index) => `
+                <div class="book-card fade-in" style="animation-delay: ${index * 0.1}s">
+                    <div class="glass-panel rounded-xl overflow-hidden cursor-pointer group" onclick="openBook(${book.id})">
+                        <div class="aspect-[3/4] relative overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+                            ${book.cover ? 
+                                `<img src="${book.cover}" alt="${book.name}" class="w-full h-full object-cover">` :
+                                `<div class="w-full h-full flex items-center justify-center">
+                                    <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                </div>`
+                            }
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div class="absolute bottom-0 left-0 right-0 p-3 text-white opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-2 group-hover:translate-y-0">
+                                <p class="text-xs font-medium">Click to read</p>
+                            </div>
+                            <div class="book-spine absolute left-0 top-0 bottom-0 w-4"></div>
+                        </div>
+                        <div class="p-3">
+                            <h3 class="font-semibold text-sm truncate mb-1" title="${book.name}">${book.name}</h3>
+                            <div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+                                <span>${book.totalPages || '?'} pages</span>
+                                <span>${book.size}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function openBook(bookId) {
+            const book = books.find(b => b.id === bookId);
+            if (!book) return;
+
+            currentBook = book;
+            currentPage = 1;
+            scale = 1.5;
+            isZoomed = false;
+
+            const arrayBuffer = await book.file.arrayBuffer();
+            pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+            document.getElementById('readerTitle').textContent = book.name;
+            document.getElementById('libraryView').classList.add('hidden');
+            document.getElementById('readerView').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+
+            updateScrollControls();
+            updateViewModeUI();
+            await renderPage();
+        }
+
+        function closeReader() {
+            document.getElementById('readerView').classList.add('hidden');
+            document.getElementById('libraryView').classList.remove('hidden');
+            document.body.style.overflow = '';
+            pdfDoc = null;
+            currentBook = null;
+            isZoomed = false;
+            updateScrollControls();
+        }
+
+        // Render both pages (or single page)
+        async function renderPage() {
+            if (!pdfDoc) return;
+
+            const canvasLeft = document.getElementById('pdfCanvasLeft');
+            const canvasRight = document.getElementById('pdfCanvasRight');
+            const wrapperLeft = document.getElementById('pageWrapperLeft');
+            const wrapperRight = document.getElementById('pageWrapperRight');
+            const binding = document.getElementById('bookBinding');
+            const container = document.getElementById('pagesContainer');
+
+            // Calculate scale based on mode
+            // In two-page mode, each page needs to be smaller to fit both
+            let effectiveScale = scale;
+            if (twoPageMode) {
+                effectiveScale = scale * 0.85; // Slightly smaller for two-page fit
+            }
+
+            if (twoPageMode) {
+                // Two-page mode
+                container.classList.remove('single-page');
+                wrapperLeft.classList.remove('hidden-page');
+                wrapperRight.classList.remove('hidden-page');
+                binding.classList.remove('hidden');
+
+                // Render left page
+                await renderSinglePage(canvasLeft, currentPage, effectiveScale);
+
+                // Render right page (next page)
+                const rightPageNum = currentPage + 1;
+                if (rightPageNum <= pdfDoc.numPages) {
+                    await renderSinglePage(canvasRight, rightPageNum, effectiveScale);
+                    wrapperRight.classList.remove('hidden-page');
+                } else {
+                    // No right page - hide it
+                    wrapperRight.classList.add('hidden-page');
+                }
+
+                // Update indicator
+                if (rightPageNum <= pdfDoc.numPages) {
+                    document.getElementById('pageIndicator').textContent = 
+                        `Pages ${currentPage}-${rightPageNum} of ${pdfDoc.numPages}`;
+                } else {
+                    document.getElementById('pageIndicator').textContent = 
+                        `Page ${currentPage} of ${pdfDoc.numPages}`;
+                }
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
+                // Single-page mode
+                container.classList.add('single-page');
+                wrapperLeft.classList.remove('hidden-page');
+                wrapperRight.classList.add('hidden-page');
+                binding.classList.add('hidden');
+
+                await renderSinglePage(canvasLeft, currentPage, effectiveScale);
+
+                document.getElementById('pageIndicator').textContent = 
+                    `Page ${currentPage} of ${pdfDoc.numPages}`;
+            }
+
+            // Reset scroll position
+            document.getElementById('pdfContainer').scrollTop = 0;
+            document.getElementById('pdfContainer').scrollLeft = 0;
+            
+            // Adjust magnifier dimensions immediately after page resize
+            if (typeof updateMagnifier === 'function') {
+                updateMagnifier();
+            }
+        }
+
+        // Render a single page to a canvas
+        async function renderSinglePage(canvas, pageNum, renderScale) {
+            const page = await pdfDoc.getPage(pageNum);
+            const ctx = canvas.getContext('2d');
+            
+            // Limit devicePixelRatio to prevent extremely large canvases on high-DPI displays
+            // This massively improves performance for "heavy" PDFs.
+            const maxDPR = Math.min(window.devicePixelRatio || 1, 2);
+            let effectiveScale = renderScale * maxDPR;
+            
+            // Cap total scale to avoid canvas dimension limits and massive memory usage
+            if (effectiveScale > 4) effectiveScale = 4;
+            
+            const viewport = page.getViewport({ scale: effectiveScale });
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            
+            // Scale the canvas down using CSS to maintain the intended visual size
+            canvas.style.width = `${viewport.width / maxDPR}px`;
+            canvas.style.height = `${viewport.height / maxDPR}px`;
+
+            await page.render({
+                canvasContext: ctx,
+                viewport: viewport
+            }).promise;
+        }
+
+        // Navigation
+        function nextPage() {
+            const step = twoPageMode ? 2 : 1;
+            if (currentPage + step - 1 < pdfDoc.numPages) {
+                currentPage += step;
+                renderPage();
+            } else if (twoPageMode && currentPage < pdfDoc.numPages) {
+                // Show last page alone if odd number
+                currentPage = pdfDoc.numPages;
+                renderPage();
+            }
+        }
+
+        function previousPage() {
+            const step = twoPageMode ? 2 : 1;
+            if (currentPage > 1) {
+                currentPage = Math.max(1, currentPage - step);
+                renderPage();
+            }
+        }
+
+        // View mode toggle
+        function toggleViewMode() {
+            twoPageMode = !twoPageMode;
+            updateViewModeUI();
+            
+            // Reset to first page when switching modes
+            currentPage = 1;
+            renderPage();
+            
+            if (typeof updateMagControllerUI === 'function') updateMagControllerUI();
+        }
+
+        function updateViewModeUI() {
+            const btn = document.getElementById('viewModeBtn');
+            const icon = document.getElementById('viewModeIcon');
+            
+            if (twoPageMode) {
+                btn.classList.add('active-mode');
+                // Two-page icon
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"></path>';
+            } else {
+                btn.classList.remove('active-mode');
+                // Single-page icon
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>';
+            }
+        }
+
+        // Zoom
+        function zoomIn() {
+            if (typeof isMagnifierMode !== 'undefined' && isMagnifierMode) {
+                ZOOM_FACTOR = Math.min(ZOOM_FACTOR + 0.2, 3.0); // Max zoom 3x
+                if (typeof updateMagnifier === 'function') updateMagnifier();
+                return;
+            }
+            scale = Math.min(scale + 0.25, 4);
+            isZoomed = scale > 1.5;
+            updateScrollControls();
+            renderPage();
+        }
+
+        function zoomOut() {
+            if (typeof isMagnifierMode !== 'undefined' && isMagnifierMode) {
+                ZOOM_FACTOR = Math.max(ZOOM_FACTOR - 0.2, 1.0); // Min zoom 1x
+                if (typeof updateMagnifier === 'function') updateMagnifier();
+                return;
+            }
+            scale = Math.max(scale - 0.25, 0.5);
+            isZoomed = scale > 1.5;
+            updateScrollControls();
+            renderPage();
+        }
+
+        function updateScrollControls() {
+            // Deprecated: Scroll controls are now always visible on the right center edge
+        }
+
+        let currentScrollAnimation = null;
+        let isAutoScrolling = false;
+
+        function slowScrollTo(container, targetY, duration) {
+            // If already scrolling, a second click stops it
+            if (currentScrollAnimation) {
+                cancelAnimationFrame(currentScrollAnimation);
+                currentScrollAnimation = null;
+                isAutoScrolling = false;
+                return;
+            }
+            
+            isAutoScrolling = true;
+            const startY = container.scrollTop;
+            const distance = targetY - startY;
+            const startTime = performance.now();
+            
+            function step(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Linear ease for comfortable auto-reading
+                container.scrollTop = startY + distance * progress;
+                
+                if (progress < 1 && isAutoScrolling) {
+                    currentScrollAnimation = requestAnimationFrame(step);
+                } else {
+                    currentScrollAnimation = null;
+                    isAutoScrolling = false;
+                    
+                    // If we finished the scroll automatically, turn the page
+                    if (progress === 1) {
+                        const maxScroll = container.scrollHeight - container.clientHeight;
+                        if (targetY === 0 && currentPage > 1) {
+                            previousPage();
+                        } else if (targetY >= maxScroll - 10) {
+                            const stepAmount = twoPageMode ? 2 : 1;
+                            if (currentPage + stepAmount - 1 < pdfDoc.numPages) {
+                                nextPage();
+                            }
+                        }
+                    }
                 }
             }
-        });
-    }
-
-    themeToggle.addEventListener('click', toggleTheme);
-
-    playPauseBtn.addEventListener('click', togglePlay);
-    
-    prevBtn.addEventListener('click', playPrevious);
-    nextBtn.addEventListener('click', playNext);
-
-    muteBtn.addEventListener('click', toggleMute);
-    
-    volumeSlider.addEventListener('input', (e) => {
-        updateVolume(e.target.value);
-    });
-
-    addToPlaylistBtn.addEventListener('click', () => {
-        if (currentStationIndex >= 0 && currentStations[currentStationIndex]) {
-            addToPlaylist(currentStations[currentStationIndex]);
+            currentScrollAnimation = requestAnimationFrame(step);
         }
-    });
 
-    currentStationImg.addEventListener('click', () => {
-        addToPlaylistBtn.click();
-    });
-
-    if (eqHdBtn) {
-        eqHdBtn.addEventListener('click', toggleHDEQ);
-    }
-    
-    if (djBoostBtn) {
-        djBoostBtn.addEventListener('click', toggleDJBoost);
-    }
-    
-    if (volBoostCheck) {
-        volBoostCheck.addEventListener('change', toggleVolBoost);
-    }
-
-    if (smartAutoScanBtn) {
-        smartAutoScanBtn.addEventListener('click', toggleSmartAutoScan);
-    }
-
-    // Tab Switching
-    mainTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const target = tab.dataset.tab;
-            switchView(target);
-        });
-    });
-
-    // Scanner Logic
-    if (freqSlider) {
-        freqSlider.addEventListener('input', (e) => {
-            const val = parseFloat(e.target.value).toFixed(1);
-            freqValue.textContent = val;
-            updateSignalStrength(val);
-        });
-    }
-
-    if (addCustomBtn) {
-        addCustomBtn.addEventListener('click', addCustomStation);
-    }
-
-    if (autoScanBtn) {
-        autoScanBtn.addEventListener('click', startAutoScan);
-    }
-
-    if (saveAllBtn) {
-        saveAllBtn.addEventListener('click', saveAllDiscovered);
-    }
-
-    // Audio Player Events
-    audioPlayer.onplay = () => {
-        playPauseBtn.innerHTML = '<i data-lucide="pause" id="play-icon"></i>';
-        lucide.createIcons();
-        playerStatus.textContent = 'Playing';
-        if (nowPlayingCard) nowPlayingCard.classList.add('playing');
-    };
-
-    audioPlayer.onplaying = () => {
-        if (nowPlayingCard) nowPlayingCard.classList.add('playing');
-        playerStatus.textContent = 'Playing';
-    };
-
-    audioPlayer.onpause = () => {
-        playPauseBtn.innerHTML = '<i data-lucide="play" id="play-icon"></i>';
-        lucide.createIcons();
-        playerStatus.textContent = 'Paused';
-        if (nowPlayingCard) nowPlayingCard.classList.remove('playing');
-        if ('mediaSession' in navigator) {
-            navigator.mediaSession.playbackState = 'paused';
-        }
-    };
-
-    audioPlayer.onwaiting = () => {
-        playerStatus.textContent = 'Buffering...';
-    };
-
-    audioPlayer.onerror = (e) => {
-        console.error('Audio playback error:', e);
-        playerStatus.textContent = 'Error Loading Stream';
-        playerStatus.style.color = 'var(--accent-color)';
-        setTimeout(() => {
-            playerStatus.style.color = 'var(--primary-color)';
-        }, 3000);
-    };
-
-    audioPlayer.onloadstart = () => {
-        playerStatus.textContent = 'Buffering...';
-    };
-
-    // Prevent background pausing
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden && !audioPlayer.paused) {
-            // Re-assert playback state to OS
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.playbackState = 'playing';
+        function scrollUp() {
+            const container = document.getElementById('pdfContainer');
+            
+            if (container.scrollTop > 0 || currentScrollAnimation) {
+                // Auto-scroll to the absolute top point (speed: ~100px per second)
+                const distance = container.scrollTop;
+                const duration = Math.max(distance * 10, 800); 
+                slowScrollTo(container, 0, duration);
+            } else if (currentPage > 1) {
+                previousPage();
             }
         }
-    });
-}
 
-// API Functions
-async function fetchStations(query = '', country = '', tag = '', state = '', language = '') {
-    lastQuery = query;
-    lastCountry = country;
-    lastTag = tag;
-    
-    mainLoader.style.display = 'flex';
-    stationsGrid.innerHTML = '';
-    
-    let url = `${API_BASE}/stations/search?limit=${DEFAULT_LIMIT}&order=clickcount&reverse=true&hidebroken=true`;
-    if (country) {
-        url += `&country=${encodeURIComponent(country)}`;
-    }
-    if (tag) {
-        url += `&tag=${encodeURIComponent(tag)}`;
-    }
-    if (state) {
-        url += `&state=${encodeURIComponent(state)}`;
-    }
-    if (language) {
-        url += `&language=${encodeURIComponent(language)}`;
-    }
-    if (query) {
-        url += `&name=${encodeURIComponent(query)}`;
-    }
-
-    try {
-        const response = await fetch(url);
-        currentStations = await response.json();
-        renderStations();
-        resultsCount.textContent = `${currentStations.length} stations found`;
-        
-        // Auto-play the first station if any are found
-        if (currentStations.length > 0) {
-            playStation(0, 'search');
-        }
-    } catch (error) {
-        console.error('Failed to fetch stations:', error);
-        stationsGrid.innerHTML = '<p class="error">Failed to load stations. Please check your internet connection.</p>';
-    } finally {
-        mainLoader.style.display = 'none';
-    }
-}
-
-// Render Functions
-function renderStations() {
-    if (currentStations.length === 0) {
-        stationsGrid.innerHTML = '<div class="empty-state"><p>No stations found for this search.</p></div>';
-        return;
-    }
-
-    stationsGrid.innerHTML = currentStations.map((station, index) => `
-        <div class="station-item" onclick="playStation(${index}, 'search', this)">
-            <img src="${station.favicon || DEFAULT_LOGO}" 
-                 class="list-img" 
-                 loading="lazy"
-                 onerror="this.onerror=null; this.src='${DEFAULT_LOGO}';">
-            <div class="item-info">
-                <h4>${station.name}</h4>
-                <p>${station.country} • ${station.tags ? station.tags.split(',').slice(0, 2).join(', ') : 'Radio'}</p>
-            </div>
-            <div class="item-actions">
-                <button class="icon-btn" onclick="event.stopPropagation(); addToPlaylistById('${station.stationuuid}')">
-                    <i data-lucide="plus-circle"></i>
-                </button>
-            </div>
-        </div>
-    `).join('');
-    lucide.createIcons();
-}
-
-function renderPlaylist() {
-    const playlistHTML = currentPlaylist.length === 0 
-        ? `<div class="empty-state"><i data-lucide="list-music"></i><p>No stations saved yet</p></div>`
-        : currentPlaylist.map((station, index) => `
-            <div class="station-item" onclick="playStation(${index}, 'playlist', this)">
-                <img src="${station.favicon || DEFAULT_LOGO}" 
-                     class="list-img" 
-                     loading="lazy"
-                     onerror="this.onerror=null; this.src='${DEFAULT_LOGO}';">
-                <div class="item-info">
-                    <h4>${station.name}</h4>
-                    <p>${station.country || 'Custom Station'}</p>
-                </div>
-                <div class="item-actions">
-                    <button class="icon-btn" onclick="event.stopPropagation(); removeFromPlaylist(${index})">
-                        <i data-lucide="trash-2"></i>
-                    </button>
-                </div>
-            </div>
-        `).join('');
-
-    if (quickPlaylistList) quickPlaylistList.innerHTML = playlistHTML;
-    if (fullPlaylistList) fullPlaylistList.innerHTML = playlistHTML;
-    
-    lucide.createIcons();
-}
-
-function switchView(target) {
-    // Update Tabs
-    mainTabs.forEach(tab => {
-        if (tab.dataset.tab === target) {
-            tab.classList.add('active');
-        } else {
-            tab.classList.remove('active');
-        }
-    });
-
-    // Update Views
-    Object.keys(views).forEach(key => {
-        if (key === target) {
-            views[key].style.display = 'block';
-        } else {
-            views[key].style.display = 'none';
-        }
-    });
-}
-
-function updateSignalStrength(freq) {
-    // Simulate signal strength based on frequency (just for UI)
-    const seed = Math.sin(freq * 10);
-    signalBars.forEach((bar, i) => {
-        const height = 10 + (i * 10) + (seed * 5);
-        bar.style.height = `${Math.max(5, height)}px`;
-        bar.style.opacity = seed > 0.5 ? '1' : '0.4';
-    });
-}
-
-function addCustomStation() {
-    const name = customNameInput.value.trim();
-    const url = customUrlInput.value.trim();
-    const icon = customIconInput.value.trim();
-    const freq = freqValue.textContent;
-
-    if (!name || !url) {
-        alert('Please provide at least a name and a stream URL.');
-        return;
-    }
-
-    const newStation = {
-        stationuuid: 'custom-' + Date.now(),
-        name: `${name} (${freq} MHz)`,
-        url: url,
-        url_resolved: url,
-        favicon: icon || DEFAULT_LOGO,
-        country: 'Custom',
-        tags: 'FM, Manual'
-    };
-
-    addToPlaylist(newStation);
-    alert('Station added to your playlist!');
-    
-    // Clear inputs
-    customNameInput.value = '';
-    customUrlInput.value = '';
-    customIconInput.value = '';
-}
-
-function startAutoScan() {
-    autoScanBtn.disabled = true;
-    autoScanBtn.innerHTML = '<i class="spin" data-lucide="refresh-cw"></i> Scanning...';
-    lucide.createIcons();
-    discoveredFrequencies = [];
-    saveAllBtn.style.display = 'none';
-    
-    let currentFreq = 87.5;
-    const interval = setInterval(() => {
-        currentFreq = +(currentFreq + 0.5).toFixed(1);
-        freqSlider.value = currentFreq;
-        freqValue.textContent = currentFreq;
-        updateSignalStrength(currentFreq);
-        
-        // Simulate finding "active" frequencies
-        if (Math.random() > 0.7) {
-            discoveredFrequencies.push(currentFreq);
-            // Flash frequency display on find
-            freqValue.style.color = 'var(--accent-color)';
-            setTimeout(() => { freqValue.style.color = 'var(--text-primary)'; }, 200);
-        }
-        
-        if (currentFreq >= 108) {
-            clearInterval(interval);
-            autoScanBtn.disabled = false;
-            autoScanBtn.innerHTML = '<i data-lucide="zap"></i> Auto Scan Frequencies';
-            lucide.createIcons();
+        function scrollDown() {
+            const container = document.getElementById('pdfContainer');
+            const maxScroll = container.scrollHeight - container.clientHeight;
             
-            if (discoveredFrequencies.length > 0) {
-                saveAllBtn.style.display = 'flex';
-                saveAllBtn.textContent = `Save ${discoveredFrequencies.length} Frequencies`;
-                alert(`Scan complete! Found ${discoveredFrequencies.length} active frequencies.`);
+            if (container.scrollTop < maxScroll - 10 || currentScrollAnimation) {
+                // Auto-scroll to the absolute bottom last point (speed: ~100px per second)
+                const distance = maxScroll - container.scrollTop;
+                const duration = Math.max(distance * 10, 800);
+                slowScrollTo(container, maxScroll, duration);
             } else {
-                alert('Scan complete. No active frequencies found.');
+                const stepAmount = twoPageMode ? 2 : 1;
+                if (currentPage + stepAmount - 1 < pdfDoc.numPages) {
+                    nextPage();
+                }
             }
         }
-    }, 100);
-}
 
-function saveAllDiscovered() {
-    if (discoveredFrequencies.length === 0) return;
-    
-    discoveredFrequencies.forEach(freq => {
-        const newStation = {
-            stationuuid: 'auto-' + freq + '-' + Date.now(),
-            name: `FM Station ${freq}`,
-            url: `https://icecast.radio-browser.info/fm/${freq}`, // Placeholder URL
-            url_resolved: `https://icecast.radio-browser.info/fm/${freq}`,
-            favicon: DEFAULT_LOGO,
-            country: 'Local Scan',
-            tags: 'FM, Scanned'
-        };
-        currentPlaylist.push(newStation);
-    });
-    
-    savePlaylist();
-    renderPlaylist();
-    saveAllBtn.style.display = 'none';
-    alert(`${discoveredFrequencies.length} stations added to your playlist!`);
-}
-
-// Playback Logic
-function playStation(index, source = 'search', element = null) {
-    let station;
-    if (source === 'search') {
-        station = currentStations[index];
-        currentStationIndex = index;
-    } else {
-        station = currentPlaylist[index];
-    }
-
-    if (!station) return;
-
-    // Update Player UI
-    updatePlayerUI(station);
-    
-    // Update Queue Info Text
-    if (queueTickerText) {
-        let list = source === 'search' ? currentStations : currentPlaylist;
-        if (list.length > 0) {
-            const pIdx = (index - 1 + list.length) % list.length;
-            const nIdx = (index + 1) % list.length;
-            const prevStationText = `⏮️ Prev: ${list[pIdx].name || 'Unknown'}`;
-            const nextStationText = `⏭️ Next: ${list[nIdx].name || 'Unknown'}`;
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('readerView').classList.contains('hidden')) return;
             
-            queueTickerText.textContent = nextStationText;
-            queueTickerText.style.color = '#00FF33';
-            queueTickerText.style.textShadow = '0 0 5px #F7FF00, 1px 1px 2px #F7FF00';
-            showingNextInQueue = true;
-            
-            clearInterval(queueTickerInterval);
-            queueTickerInterval = setInterval(() => {
-                queueTickerText.style.opacity = '0';
-                setTimeout(() => {
-                    if (showingNextInQueue) {
-                        queueTickerText.textContent = prevStationText;
-                        queueTickerText.style.color = '#FFFF00';
-                        queueTickerText.style.textShadow = '0 0 5px #000000, 1px 1px 2px #000000';
-                    } else {
-                        queueTickerText.textContent = nextStationText;
-                        queueTickerText.style.color = '#00FF33';
-                        queueTickerText.style.textShadow = '0 0 5px #F7FF00, 1px 1px 2px #F7FF00';
-                    }
-                    queueTickerText.style.opacity = '1';
-                    showingNextInQueue = !showingNextInQueue;
-                }, 300);
-            }, 4000);
-        }
-    }
-
-    // Load and Play
-    audioPlayer.src = station.url_resolved || station.url;
-    let autoPlayBlocked = false;
-    
-    audioPlayer.play().catch(e => {
-        console.warn('Auto-play failed, user interaction required.', e);
-        playerStatus.textContent = 'Click Play to start';
-        if (e.name === 'NotAllowedError') {
-            autoPlayBlocked = true;
-        }
-    });
-
-    // Auto skip if not playing within 4 seconds
-    clearTimeout(playCheckTimeout);
-    playCheckTimeout = setTimeout(() => {
-        if (autoPlayBlocked) return;
-        
-        if (audioPlayer.paused || audioPlayer.readyState === 0 || audioPlayer.error) {
-            console.log('Station failed to play within 4 seconds. Skipping to next...');
-            playerStatus.textContent = 'Failed, skipping...';
-            playNext();
-        }
-    }, 4000);
-
-    // Background Audio Support (Media Session)
-    if ('mediaSession' in navigator) {
-        navigator.mediaSession.metadata = new MediaMetadata({
-            title: station.name,
-            artist: station.country || 'FM Radio',
-            album: station.tags || 'Internet Radio',
-            artwork: [
-                { src: station.favicon || DEFAULT_LOGO, sizes: '200x200', type: 'image/png' }
-            ]
+            if (e.key === 'ArrowRight' || e.key === ' ') nextPage();
+            if (e.key === 'ArrowLeft') previousPage();
+            if (e.key === 'ArrowUp') scrollUp();
+            if (e.key === 'ArrowDown') scrollDown();
+            if (e.key === 'Escape') closeReader();
+            if (e.key === '+' || e.key === '=') zoomIn();
+            if (e.key === '-') zoomOut();
+            if (e.key === 'v' || e.key === 'V') toggleViewMode();
         });
 
-        navigator.mediaSession.setActionHandler('play', () => audioPlayer.play());
-        navigator.mediaSession.setActionHandler('pause', () => audioPlayer.pause());
-        navigator.mediaSession.setActionHandler('previoustrack', () => playPrevious());
-        navigator.mediaSession.setActionHandler('nexttrack', () => playNext());
-        
-        navigator.mediaSession.playbackState = 'playing';
-    }
+        // Touch/Swipe support
+        let touchStartX = 0;
+        let touchEndX = 0;
+        let touchStartY = 0;
+        let touchEndY = 0;
 
-    // Add active class
-    const items = document.querySelectorAll('.station-item');
-    items.forEach(item => item.classList.remove('active'));
-    
-    if (element) {
-        element.classList.add('active');
-    }
-}
+        document.getElementById('pdfContainer').addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, {passive: true});
 
-function updatePlayerUI(station) {
-    const name = station.name || 'Unknown Station';
-    const country = station.country || 'Global';
-    const tags = station.tags ? station.tags.split(',').slice(0, 2).join(', ') : 'Radio';
-    const img = station.favicon || DEFAULT_LOGO;
+        document.getElementById('pdfContainer').addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
+            handleSwipe();
+        }, {passive: true});
 
-    const defaultLogo = DEFAULT_LOGO;
-    const defaultMini = DEFAULT_LOGO;
-
-    currentStationName.textContent = name;
-    if (name.length > 20) {
-        currentStationName.classList.add('marquee-text');
-    } else {
-        currentStationName.classList.remove('marquee-text');
-    }
-    currentStationMeta.textContent = `${country} • ${tags}`;
-    
-    // Set up main image with timeout and error fallback
-    let mainImgLoaded = false;
-    currentStationImg.onload = () => { mainImgLoaded = true; };
-    currentStationImg.onerror = () => { currentStationImg.src = defaultLogo; };
-    currentStationImg.src = img;
-    setTimeout(() => {
-        if (!mainImgLoaded && currentStationImg.src === img) {
-            currentStationImg.src = defaultLogo;
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            const diffX = touchStartX - touchEndX;
+            const diffY = touchStartY - touchEndY;
+            
+            if (!isZoomed && Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > swipeThreshold) {
+                if (diffX > 0) {
+                    nextPage();
+                } else {
+                    previousPage();
+                }
+            }
         }
-    }, 2500); // 2.5 seconds timeout
-    
-    playerStatus.textContent = 'Loading...';
-}
 
-function togglePlay() {
-    if (audioPlayer.paused) {
-        audioPlayer.play();
-    } else {
-        audioPlayer.pause();
-    }
-    // Double check icon (already handled by event listeners, but for responsiveness)
-    setTimeout(() => {
-        const iconName = audioPlayer.paused ? 'play' : 'pause';
-        playPauseBtn.innerHTML = `<i data-lucide="${iconName}" id="play-icon"></i>`;
-        lucide.createIcons();
-    }, 50);
-}
-
-function playNext() {
-    if (currentStations.length === 0) return;
-    currentStationIndex = (currentStationIndex + 1) % currentStations.length;
-    playStation(currentStationIndex, 'search');
-}
-
-function playPrevious() {
-    if (currentStations.length === 0) return;
-    currentStationIndex = (currentStationIndex - 1 + currentStations.length) % currentStations.length;
-    playStation(currentStationIndex, 'search');
-}
-
-// Volume Controls
-function updateVolume(value) {
-    let volume = value / 100;
-    volumeSlider.value = value;
-    
-    // Apply Boosts based on active features
-    if (isVolBoostEnabled) {
-        volume = 1.0;
-    } else {
-        if (isHDEQEnabled) volume = Math.min(1.0, volume * 1.25);
-        if (isDJBoostEnabled) volume = Math.min(1.0, volume * 1.5);
-    }
-    
-    audioPlayer.volume = volume;
-    
-    let volIconName = 'volume-2';
-    if (volume === 0) {
-        volIconName = 'volume-x';
-    } else if (volume < 0.5) {
-        volIconName = 'volume-1';
-    }
-    
-    const muteBtnElement = document.getElementById('mute-btn');
-    if (muteBtnElement) {
-        muteBtnElement.innerHTML = `<i data-lucide="${volIconName}" id="volume-icon"></i>`;
-        lucide.createIcons();
-    }
-    
-    if (volume > 0) {
-        lastVolume = value;
-        isMuted = false;
-    }
-}
-
-function toggleMute() {
-    if (isMuted) {
-        updateVolume(lastVolume);
-    } else {
-        lastVolume = volumeSlider.value;
-        updateVolume(0);
-        isMuted = true;
-    }
-}
-
-// Playlist Logic
-function addToPlaylist(station) {
-    if (currentPlaylist.some(s => s.stationuuid === station.stationuuid)) {
-        alert('Station already in playlist!');
-        return;
-    }
-    currentPlaylist.push(station);
-    savePlaylist();
-    renderPlaylist();
-}
-
-function addToPlaylistById(uuid) {
-    const station = currentStations.find(s => s.stationuuid === uuid);
-    if (station) {
-        addToPlaylist(station);
-    }
-}
-
-function removeFromPlaylist(index) {
-    currentPlaylist.splice(index, 1);
-    savePlaylist();
-    renderPlaylist();
-}
-
-function savePlaylist() {
-    localStorage.setItem('fm_playlist', JSON.stringify(currentPlaylist));
-}
-
-function updateActiveCat(label) {
-    catButtons.forEach(btn => {
-        if (btn.textContent === label) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('dark-mode');
         }
-    });
-}
 
-// Theme Functions
-function toggleTheme() {
-    const isLight = document.body.getAttribute('data-theme') === 'light';
-    const newTheme = isLight ? 'dark' : 'light';
-    setTheme(newTheme);
-}
+        let pdfBgMode = 0; // 0: White, 1: Black, 2: Dim
+        function togglePdfBackground() {
+            pdfBgMode = (pdfBgMode + 1) % 3;
+            const rv = document.getElementById('readerView');
+            rv.classList.remove('bg-mode-white', 'bg-mode-black', 'bg-mode-dim');
+            
+            const btn = document.getElementById('pdfBgBtn');
+            btn.classList.remove('active-mode');
 
-function setTheme(theme) {
-    document.body.setAttribute('data-theme', theme);
-    localStorage.setItem('fm_theme', theme);
-    
-    if (theme === 'light') {
-        themeIcon.setAttribute('data-lucide', 'sun');
-    } else {
-        themeIcon.setAttribute('data-lucide', 'moon');
-    }
-    lucide.createIcons();
-}
+            if (pdfBgMode === 0) {
+                rv.classList.add('bg-mode-white');
+            } else if (pdfBgMode === 1) {
+                rv.classList.add('bg-mode-black');
+                btn.classList.add('active-mode');
+            } else {
+                rv.classList.add('bg-mode-dim');
+                btn.classList.add('active-mode');
+            }
+        }
 
-function loadTheme() {
-    const savedTheme = localStorage.getItem('fm_theme') || 'dark';
-    setTheme(savedTheme);
-}
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
 
-// HD/EQ Logic
-function toggleHDEQ() {
-    isHDEQEnabled = !isHDEQEnabled;
-    if (isHDEQEnabled) {
-        eqHdBtn.style.backgroundColor = 'var(--primary-color)';
-        eqHdBtn.style.color = '#fff';
-        playerStatus.textContent = 'HD/EQ Active';
-    } else {
-        eqHdBtn.style.backgroundColor = 'transparent';
-        eqHdBtn.style.color = 'inherit';
-        playerStatus.textContent = 'HD/EQ Disabled';
-    }
-    
-    updateVolume(volumeSlider.value);
-    
-    setTimeout(() => {
-        if (audioPlayer.paused) playerStatus.textContent = 'Paused';
-        else playerStatus.textContent = 'Playing';
-    }, 2000);
-}
-
-// DJ Boost Logic
-function toggleDJBoost() {
-    isDJBoostEnabled = !isDJBoostEnabled;
-    if (isDJBoostEnabled) {
-        djBoostBtn.style.backgroundColor = 'var(--accent-color)';
-        djBoostBtn.style.color = '#fff';
-        playerStatus.textContent = 'DJ/Beats Boost ON';
-    } else {
-        djBoostBtn.style.backgroundColor = 'transparent';
-        djBoostBtn.style.color = 'inherit';
-        playerStatus.textContent = 'DJ/Beats Boost OFF';
-    }
-    
-    updateVolume(volumeSlider.value);
-    
-    setTimeout(() => {
-        if (audioPlayer.paused) playerStatus.textContent = 'Paused';
-        else playerStatus.textContent = 'Playing';
-    }, 2000);
-}
-
-// Vol Boost Logic
-function toggleVolBoost(e) {
-    isVolBoostEnabled = e.target.checked;
-    if (isVolBoostEnabled) {
-        playerStatus.textContent = 'Volume Max Boost ON';
-    } else {
-        playerStatus.textContent = 'Volume Boost OFF';
-    }
-    
-    updateVolume(volumeSlider.value);
-    
-    setTimeout(() => {
-        if (audioPlayer.paused) playerStatus.textContent = 'Paused';
-        else playerStatus.textContent = 'Playing';
-    }, 2000);
-}
-
-// Smart Auto Scan Logic
-function toggleSmartAutoScan() {
-    isSmartScanning = !isSmartScanning;
-    
-    if (isSmartScanning) {
-        smartAutoScanBtn.innerHTML = '<i data-lucide="stop-circle"></i><span>Stop Scan</span>';
-        smartAutoScanBtn.style.backgroundColor = 'var(--accent-color)';
-        smartAutoScanBtn.style.color = '#fff';
-        lucide.createIcons();
+        // Magnifier Logic
+        let isMagnifierMode = false;
+        let isDraggingMag = false;
+        let magDragOffsetX = 0;
+        let magDragOffsetY = 0;
         
-        if (currentStations.length === 0) {
-            alert('No stations in the current list to scan!');
-            toggleSmartAutoScan();
-            return;
+        let magMoveInterval = null;
+        
+        function startMagMove(dx, dy) {
+            if (!isMagnifierMode) return;
+            if (!twoPageMode && dx !== 0) return; // Only allow Y movement for single page
+
+            if (magMoveInterval) clearInterval(magMoveInterval);
+            
+            magMoveInterval = setInterval(() => {
+                lastMouseX += dx;
+                lastMouseY += dy;
+                
+                if (lastMouseX < 0) lastMouseX = 0;
+                if (lastMouseX > window.innerWidth) lastMouseX = window.innerWidth;
+                if (lastMouseY < 0) lastMouseY = 0;
+                if (lastMouseY > window.innerHeight) lastMouseY = window.innerHeight;
+                
+                scheduleMagnifierUpdate();
+            }, 16);
+        }
+
+        function stopMagMove() {
+            if (magMoveInterval) {
+                clearInterval(magMoveInterval);
+                magMoveInterval = null;
+            }
         }
         
-        if (currentStationIndex < 0) currentStationIndex = 0;
-        
-        playerStatus.textContent = 'Auto Scan Started...';
-        playSmartScanStation();
-    } else {
-        smartAutoScanBtn.innerHTML = '<i data-lucide="zap"></i><span>Auto Scan</span>';
-        smartAutoScanBtn.style.backgroundColor = '';
-        smartAutoScanBtn.style.color = 'var(--primary-color)';
-        lucide.createIcons();
-        
-        clearTimeout(smartScanTimeout);
-        clearTimeout(playCheckTimeout);
-        playerStatus.textContent = 'Auto Scan Stopped';
-    }
-}
-
-function playSmartScanStation() {
-    if (!isSmartScanning) return;
-    
-    playStation(currentStationIndex, 'search');
-    
-    clearTimeout(playCheckTimeout);
-    clearTimeout(smartScanTimeout);
-    
-    // Check if station plays within 4 seconds
-    playCheckTimeout = setTimeout(() => {
-        if (!isSmartScanning) return;
-        
-        if (audioPlayer.paused || audioPlayer.readyState < 3) {
-            // Failed or taking too long
-            playerStatus.textContent = 'Skipping unresponsive station...';
-            currentStationIndex = (currentStationIndex + 1) % currentStations.length;
-            playSmartScanStation();
-        } else {
-            // Playing successfully, schedule next change in 6 seconds (Total 10s)
-            smartScanTimeout = setTimeout(() => {
-                if (!isSmartScanning) return;
-                currentStationIndex = (currentStationIndex + 1) % currentStations.length;
-                playSmartScanStation();
-            }, 6000);
+        function updateMagControllerUI() {
+            const magController = document.getElementById('magController');
+            if (!isMagnifierMode) {
+                magController.classList.remove('active');
+                return;
+            }
+            magController.classList.add('active');
+            
+            const leftBtn = document.querySelector('.mag-left');
+            const rightBtn = document.querySelector('.mag-right');
+            if (!twoPageMode) {
+                leftBtn.style.opacity = '0.2';
+                leftBtn.style.pointerEvents = 'none';
+                rightBtn.style.opacity = '0.2';
+                rightBtn.style.pointerEvents = 'none';
+            } else {
+                leftBtn.style.opacity = '1';
+                leftBtn.style.pointerEvents = 'auto';
+                rightBtn.style.opacity = '1';
+                rightBtn.style.pointerEvents = 'auto';
+            }
         }
-    }, 4000);
-}
+        
+        function toggleMagnifierMode() {
+            isMagnifierMode = !isMagnifierMode;
+            const btn = document.getElementById('magnifierModeBtn');
+            const magGlass = document.getElementById('magnifierGlass');
+            if (isMagnifierMode) {
+                btn.classList.add('active-mode');
+                
+                // Immediately fix the magnifier over the visible part of the PDF page
+                const visibleCanvas = Array.from(document.querySelectorAll('.pdf-canvas')).find(c => {
+                    const rect = c.getBoundingClientRect();
+                    return rect.width > 0 && rect.height > 0;
+                });
+                
+                if (visibleCanvas) {
+                    const rect = visibleCanvas.getBoundingClientRect();
+                    lastMouseX = rect.left + (rect.width / 2);
+                    lastMouseY = Math.max(rect.top + 100, window.innerHeight / 3);
+                } else {
+                    lastMouseX = window.innerWidth / 2;
+                    lastMouseY = window.innerHeight / 3;
+                }
+                
+                scheduleMagnifierUpdate();
+            } else {
+                btn.classList.remove('active-mode');
+                magGlass.style.display = 'none';
+            }
+            updateMagControllerUI();
+        }
 
-// Start App
-init();
+        const pdfContainer = document.getElementById('pdfContainer');
+        const magGlass = document.getElementById('magnifierGlass');
+        const magCanvas = document.getElementById('magnifierCanvas');
+        const magCtx = magCanvas.getContext('2d');
+        const MAGNIFIER_SIZE = 180;
+        let ZOOM_FACTOR = 1.2; // 20% larger initially, adjustable
+
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+        let magAnimationFrame = null;
+
+        function scheduleMagnifierUpdate() {
+            if (magAnimationFrame) cancelAnimationFrame(magAnimationFrame);
+            magAnimationFrame = requestAnimationFrame(() => {
+                updateMagnifier();
+                magAnimationFrame = null;
+            });
+        }
+
+        function updateMagnifier() {
+            if (!isMagnifierMode) {
+                magGlass.style.display = 'none';
+                return;
+            }
+            
+            let targetCanvas;
+            if (!twoPageMode) {
+                // Relaxed hit-testing for Single Page so the ruler can scan freely from header to bottom
+                targetCanvas = Array.from(document.querySelectorAll('.pdf-canvas')).find(canvas => {
+                    const cRect = canvas.getBoundingClientRect();
+                    return cRect.width > 0 && cRect.height > 0;
+                });
+            } else {
+                targetCanvas = Array.from(document.querySelectorAll('.pdf-canvas')).find(canvas => {
+                    const cRect = canvas.getBoundingClientRect();
+                    return cRect.width > 0 && cRect.height > 0 &&
+                           lastMouseX >= cRect.left && lastMouseX <= cRect.right &&
+                           lastMouseY >= cRect.top && lastMouseY <= cRect.bottom;
+                });
+            }
+
+            if (!targetCanvas) {
+                if (twoPageMode) {
+                    magGlass.style.display = 'block';
+                    magGlass.className = 'magnifier-glass';
+                    magCanvas.width = MAGNIFIER_SIZE;
+                    magCanvas.height = MAGNIFIER_SIZE;
+                    magGlass.style.width = MAGNIFIER_SIZE + 'px';
+                    magGlass.style.height = MAGNIFIER_SIZE + 'px';
+                    magGlass.style.left = lastMouseX + 'px';
+                    magGlass.style.top = lastMouseY + 'px';
+                    magCtx.fillStyle = 'white';
+                    magCtx.fillRect(0, 0, MAGNIFIER_SIZE, MAGNIFIER_SIZE);
+                }
+                return;
+            }
+            
+            magGlass.style.display = 'block';
+            const cRect = targetCanvas.getBoundingClientRect();
+            
+            let clampedY = lastMouseY;
+            if (!twoPageMode) {
+                if (clampedY < cRect.top) clampedY = cRect.top;
+                if (clampedY > cRect.bottom) clampedY = cRect.bottom;
+            }
+            
+            const scaleX = targetCanvas.width / cRect.width;
+            const scaleY = targetCanvas.height / cRect.height;
+            const canvasX = lastMouseX - cRect.left;
+            const canvasY = clampedY - cRect.top;
+
+            // Safe draw helper to prevent IndexSizeError on some browsers
+            function safeDraw(ctx, img, sx, sy, sW, sH, dx, dy, dW, dH) {
+                if (sW <= 0 || sH <= 0 || dW <= 0 || dH <= 0) return;
+                const clampLeft = Math.max(0, -sx);
+                const clampTop = Math.max(0, -sy);
+                const clampRight = Math.max(0, (sx + sW) - img.width);
+                const clampBottom = Math.max(0, (sy + sH) - img.height);
+                if (clampLeft >= sW || clampTop >= sH) return;
+                const adjSx = sx + clampLeft;
+                const adjSy = sy + clampTop;
+                const adjSW = sW - clampLeft - clampRight;
+                const adjSH = sH - clampTop - clampBottom;
+                const scaleDX = dW / sW;
+                const scaleDY = dH / sH;
+                const adjDx = dx + (clampLeft * scaleDX);
+                const adjDy = dy + (clampTop * scaleDY);
+                const adjDW = dW - ((clampLeft + clampRight) * scaleDX);
+                const adjDH = dH - ((clampTop + clampBottom) * scaleDY);
+                if (adjSW > 0 && adjSH > 0 && adjDW > 0 && adjDH > 0) {
+                    ctx.drawImage(img, adjSx, adjSy, adjSW, adjSH, adjDx, adjDy, adjDW, adjDH);
+                }
+            }
+
+            if (!twoPageMode) {
+                // Rectangular Magnifier for Single Page
+                magGlass.className = 'magnifier-rect';
+                
+                const magHeight = Math.round(window.innerHeight * 0.15); // 15% vertically
+                const magWidth = Math.round(cRect.width * ZOOM_FACTOR); // Expand width to fit zoomed text
+                
+                magCanvas.width = magWidth;
+                magCanvas.height = magHeight;
+                magGlass.style.width = magWidth + 'px';
+                magGlass.style.height = magHeight + 'px';
+                
+                // Position horizontally centered on canvas, vertically clamped to canvas bounds
+                magGlass.style.left = (cRect.left - (magWidth - cRect.width) / 2) + 'px';
+                magGlass.style.top = clampedY + 'px';
+                
+                magCtx.fillStyle = 'white';
+                magCtx.fillRect(0, 0, magWidth, magHeight);
+                
+                const sx = 0;
+                const sy = canvasY * scaleY;
+                const sWidth = targetCanvas.width;
+                const sHeight = (magHeight / ZOOM_FACTOR) * scaleY;
+                const startY = sy - (sHeight / 2);
+                
+                safeDraw(magCtx, targetCanvas, sx, startY, sWidth, sHeight, 0, 0, magWidth, magHeight);
+            } else {
+                // Circular Magnifier for Two Page Mode
+                magGlass.className = 'magnifier-glass';
+                
+                magCanvas.width = MAGNIFIER_SIZE;
+                magCanvas.height = MAGNIFIER_SIZE;
+                magGlass.style.width = MAGNIFIER_SIZE + 'px';
+                magGlass.style.height = MAGNIFIER_SIZE + 'px';
+                
+                magGlass.style.left = lastMouseX + 'px';
+                magGlass.style.top = lastMouseY + 'px';
+                
+                magCtx.fillStyle = 'white';
+                magCtx.fillRect(0, 0, MAGNIFIER_SIZE, MAGNIFIER_SIZE);
+                
+                const sx = canvasX * scaleX;
+                const sy = canvasY * scaleY;
+                const sWidth = (MAGNIFIER_SIZE / ZOOM_FACTOR) * scaleX;
+                const sHeight = (MAGNIFIER_SIZE / ZOOM_FACTOR) * scaleY;
+                const startX = sx - (sWidth / 2);
+                const startY = sy - (sHeight / 2);
+                
+                safeDraw(magCtx, targetCanvas, startX, startY, sWidth, sHeight, 0, 0, MAGNIFIER_SIZE, MAGNIFIER_SIZE);
+            }
+        }
+
+        const magHandle = document.getElementById('magnifierHandle');
+
+        function handleMagDragStart(e, isHandle) {
+            if (!isMagnifierMode) return;
+            
+            if (isHandle && twoPageMode) {
+                isDraggingMag = true;
+                const magGlass = document.getElementById('magnifierGlass');
+                magDragOffsetX = e.clientX - parseFloat(magGlass.style.left || 0);
+                magDragOffsetY = e.clientY - parseFloat(magGlass.style.top || 0);
+            } else if (!isHandle && !twoPageMode) {
+                isDraggingMag = true;
+            }
+        }
+
+        magHandle.addEventListener('mousedown', (e) => {
+            handleMagDragStart(e, true);
+            if (isMagnifierMode && twoPageMode) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+        magHandle.addEventListener('touchstart', (e) => {
+            handleMagDragStart(e.touches[0], true);
+            if (isMagnifierMode && twoPageMode) e.preventDefault();
+        }, { passive: false });
+
+        magGlass.addEventListener('mousedown', (e) => {
+            handleMagDragStart(e, false);
+            if (isMagnifierMode && !twoPageMode) e.preventDefault();
+        });
+        magGlass.addEventListener('touchstart', (e) => {
+            handleMagDragStart(e.touches[0], false);
+            if (isMagnifierMode && !twoPageMode) e.preventDefault();
+        }, { passive: false });
+
+        window.addEventListener('mouseup', () => isDraggingMag = false);
+        window.addEventListener('touchend', () => isDraggingMag = false);
+
+        function handleMagDragMove(e) {
+            if (isMagnifierMode && isDraggingMag) {
+                if (twoPageMode) {
+                    lastMouseX = e.clientX - magDragOffsetX;
+                    lastMouseY = e.clientY - magDragOffsetY;
+                    scheduleMagnifierUpdate();
+                } else {
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
+                    scheduleMagnifierUpdate();
+                }
+            }
+        }
+
+        window.addEventListener('mousemove', (e) => handleMagDragMove(e));
+        window.addEventListener('touchmove', (e) => {
+            if (isDraggingMag) {
+                handleMagDragMove(e.touches[0]);
+                e.preventDefault(); // Prevent page scrolling while dragging
+            }
+        }, { passive: false });
+
+        pdfContainer.addEventListener('scroll', () => {
+            if (isMagnifierMode) scheduleMagnifierUpdate();
+        });
+
+        window.addEventListener('resize', () => {
+            if (isMagnifierMode) scheduleMagnifierUpdate();
+        });
+
+        // Mouseleave hiding removed to keep magnifier fixed on page
+
+        // Mobile Nav Functions
+        let currentMobileTab = null;
+        function toggleMobileTab(tabId) {
+            const panel = document.getElementById('mobileTabsPanel');
+            const contents = document.querySelectorAll('.mobile-tab-content');
+            
+            if (currentMobileTab === tabId) {
+                // Close tab
+                panel.classList.add('translate-y-full');
+                currentMobileTab = null;
+            } else {
+                // Open new tab
+                contents.forEach(c => {
+                    c.classList.remove('flex');
+                    c.classList.add('hidden');
+                });
+                const activeTab = document.getElementById('tab-' + tabId);
+                activeTab.classList.remove('hidden');
+                activeTab.classList.add('flex');
+                panel.classList.remove('translate-y-full');
+                currentMobileTab = tabId;
+            }
+        }
+
+        function applyPdfEnhancement(val) {
+            const normalized = val / 50; 
+            document.documentElement.style.setProperty('--pdf-enhance-contrast', normalized);
+            document.documentElement.style.setProperty('--pdf-enhance-brightness', normalized);
+        }
+
+        let zoomTimeout = null;
+        function applyMobileZoom(val) {
+            const newScale = (val / 100) * 1.5;
+            const container = document.getElementById('pagesContainer');
+            
+            // Immediate CSS visual feedback for smooth UI response
+            const ratio = newScale / scale;
+            container.style.transform = `scale(${ratio})`;
+            container.style.transformOrigin = 'top center';
+            
+            if (isMagnifierMode) scheduleMagnifierUpdate();
+            
+            // Debounce actual PDF re-rendering to prevent lag
+            if (zoomTimeout) clearTimeout(zoomTimeout);
+            zoomTimeout = setTimeout(() => {
+                scale = newScale;
+                isZoomed = scale > 1.5;
+                container.style.transform = ''; 
+                renderPage();
+            }, 300);
+        }
+
+        function applyMobileScrollY(val) {
+            const container = document.getElementById('pdfContainer');
+            const maxScroll = container.scrollHeight - container.clientHeight;
+            container.scrollTop = (val / 100) * maxScroll;
+        }
+
+        function applyMobileScrollX(val) {
+            const container = document.getElementById('pdfContainer');
+            const maxScroll = container.scrollWidth - container.clientWidth;
+            container.scrollLeft = (val / 100) * maxScroll;
+        }
