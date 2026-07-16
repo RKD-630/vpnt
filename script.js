@@ -670,27 +670,32 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                 // Rectangular Magnifier for Single Page
                 magGlass.className = 'magnifier-rect';
                 
-                const magHeight = Math.round(window.innerHeight * 0.15); // 15% vertically
-                const magWidth = Math.round(cRect.width * ZOOM_FACTOR); // Expand width to fit zoomed text
+                const isLandscape = window.innerWidth > window.innerHeight;
+                const magHeight = Math.round(window.innerHeight * (isLandscape ? 0.35 : 0.15)); // 35% in landscape, 15% in portrait
+                const magWidth = cRect.width; // Keep magnifier width same as page width
                 
                 magCanvas.width = magWidth;
                 magCanvas.height = magHeight;
                 magGlass.style.width = magWidth + 'px';
                 magGlass.style.height = magHeight + 'px';
                 
-                // Position horizontally mapped to canvasX, vertically clamped to canvas bounds
-                let panFactor = canvasX / cRect.width;
-                if (isNaN(panFactor)) panFactor = 0.5;
-                magGlass.style.left = (cRect.left - (magWidth - cRect.width) * panFactor) + 'px';
+                // Position horizontally fixed to canvas, vertically clamped
+                magGlass.style.left = cRect.left + 'px';
                 magGlass.style.top = clampedY + 'px';
                 
                 magCtx.fillStyle = 'white';
                 magCtx.fillRect(0, 0, magWidth, magHeight);
                 
-                const sx = 0;
-                const sy = canvasY * scaleY;
-                const sWidth = targetCanvas.width;
+                let panFactor = canvasX / cRect.width;
+                if (isNaN(panFactor)) panFactor = 0.5;
+                if (panFactor < 0) panFactor = 0;
+                if (panFactor > 1) panFactor = 1;
+                
+                const sWidth = (magWidth / ZOOM_FACTOR) * scaleX;
                 const sHeight = (magHeight / ZOOM_FACTOR) * scaleY;
+                
+                const sx = (targetCanvas.width - sWidth) * panFactor;
+                const sy = canvasY * scaleY;
                 const startY = sy - (sHeight / 2);
                 
                 safeDraw(magCtx, targetCanvas, sx, startY, sWidth, sHeight, 0, 0, magWidth, magHeight);
