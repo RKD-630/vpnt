@@ -67,6 +67,8 @@
         .pdf-canvas {
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
             background: white;
+            transition: filter 0.2s ease;
+            filter: contrast(var(--pdf-enhance-contrast)) brightness(var(--pdf-enhance-brightness)) saturate(var(--pdf-enhance-saturate)) hue-rotate(var(--pdf-enhance-hue));
         }
 
         .pages-container {
@@ -359,14 +361,37 @@
             --pdf-enhance-contrast: 1;
             --pdf-enhance-brightness: 1;
             --pdf-enhance-saturate: 1;
+            --pdf-enhance-hue: 0deg;
         }
 
-        .bg-mode-white canvas {
-            filter: contrast(var(--pdf-enhance-contrast)) brightness(var(--pdf-enhance-brightness)) saturate(var(--pdf-enhance-saturate));
-        }
         .bg-mode-black canvas {
-            filter: invert(1) hue-rotate(180deg) brightness(calc(0.95 * var(--pdf-enhance-brightness))) contrast(var(--pdf-enhance-contrast)) saturate(var(--pdf-enhance-saturate));
+            filter: invert(1) hue-rotate(calc(180deg + var(--pdf-enhance-hue))) brightness(calc(0.95 * var(--pdf-enhance-brightness))) contrast(var(--pdf-enhance-contrast)) saturate(var(--pdf-enhance-saturate));
         }
         .bg-mode-dim canvas {
-            filter: sepia(0.35) brightness(calc(0.9 * var(--pdf-enhance-brightness))) contrast(calc(0.9 * var(--pdf-enhance-contrast))) saturate(var(--pdf-enhance-saturate));
+            filter: sepia(0.35) brightness(calc(0.9 * var(--pdf-enhance-brightness))) contrast(calc(0.9 * var(--pdf-enhance-contrast))) saturate(var(--pdf-enhance-saturate)) hue-rotate(var(--pdf-enhance-hue));
+        }
+
+        @media print {
+            body > *:not(#pdf-print-container) {
+                display: none !important;
+            }
+            #pdf-print-container {
+                display: block !important;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            #pdf-print-container img {
+                max-width: 100%;
+                page-break-after: always;
+                break-after: page;
+            }
+            #pdf-print-container img:last-child {
+                page-break-after: auto;
+                break-after: auto;
+            }
+            @page {
+                margin: 0;
+                size: auto;
+            }
         }

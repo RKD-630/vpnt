@@ -312,61 +312,14 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
             // Deprecated: Scroll controls are now always visible on the right center edge
         }
 
-        let currentScrollAnimation = null;
-        let isAutoScrolling = false;
-
-        function slowScrollTo(container, targetY, duration) {
-            // If already scrolling, a second click stops it
-            if (currentScrollAnimation) {
-                cancelAnimationFrame(currentScrollAnimation);
-                currentScrollAnimation = null;
-                isAutoScrolling = false;
-                return;
-            }
-            
-            isAutoScrolling = true;
-            const startY = container.scrollTop;
-            const distance = targetY - startY;
-            const startTime = performance.now();
-            
-            function step(currentTime) {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                
-                // Linear ease for comfortable auto-reading
-                container.scrollTop = startY + distance * progress;
-                
-                if (progress < 1 && isAutoScrolling) {
-                    currentScrollAnimation = requestAnimationFrame(step);
-                } else {
-                    currentScrollAnimation = null;
-                    isAutoScrolling = false;
-                    
-                    // If we finished the scroll automatically, turn the page
-                    if (progress === 1) {
-                        const maxScroll = container.scrollHeight - container.clientHeight;
-                        if (targetY === 0 && currentPage > 1) {
-                            previousPage();
-                        } else if (targetY >= maxScroll - 10) {
-                            const stepAmount = twoPageMode ? 2 : 1;
-                            if (currentPage + stepAmount - 1 < pdfDoc.numPages) {
-                                nextPage();
-                            }
-                        }
-                    }
-                }
-            }
-            currentScrollAnimation = requestAnimationFrame(step);
-        }
+        // Auto-scroll logic removed as requested
 
         function scrollUp() {
             const container = document.getElementById('pdfContainer');
             
-            if (container.scrollTop > 0 || currentScrollAnimation) {
-                // Auto-scroll to the absolute top point (speed: ~100px per second)
-                const distance = container.scrollTop;
-                const duration = Math.max(distance * 10, 800); 
-                slowScrollTo(container, 0, duration);
+            if (container.scrollTop > 0) {
+                // Scroll up by 80% of the visible height
+                container.scrollBy({ top: -(container.clientHeight * 0.8), behavior: 'smooth' });
             } else if (currentPage > 1) {
                 previousPage();
             }
@@ -376,11 +329,9 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
             const container = document.getElementById('pdfContainer');
             const maxScroll = container.scrollHeight - container.clientHeight;
             
-            if (container.scrollTop < maxScroll - 10 || currentScrollAnimation) {
-                // Auto-scroll to the absolute bottom last point (speed: ~100px per second)
-                const distance = maxScroll - container.scrollTop;
-                const duration = Math.max(distance * 10, 800);
-                slowScrollTo(container, maxScroll, duration);
+            if (container.scrollTop < maxScroll - 10) {
+                // Scroll down by 80% of the visible height
+                container.scrollBy({ top: container.clientHeight * 0.8, behavior: 'smooth' });
             } else {
                 const stepAmount = twoPageMode ? 2 : 1;
                 if (currentPage + stepAmount - 1 < pdfDoc.numPages) {
@@ -511,29 +462,50 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
         let magDragOffsetY = 0;
         
         let magMoveInterval = null;
+        let magMoveLastTime = 0;
+        let magMoveDx = 0;
+        let magMoveDy = 0;
+
+        function magMoveLoop(time) {
+            if (!isMagnifierMode || !magMoveInterval) return;
+            
+            if (!magMoveLastTime) magMoveLastTime = time;
+            const deltaTime = time - magMoveLastTime;
+            magMoveLastTime = time;
+            
+            // Limit delta time to prevent huge jumps if tab was inactive
+            const safeDelta = Math.min(deltaTime, 32); 
+            
+            lastMouseX += magMoveDx * (safeDelta / 16);
+            lastMouseY += magMoveDy * (safeDelta / 16);
+            
+            if (lastMouseX < 0) lastMouseX = 0;
+            if (lastMouseX > window.innerWidth) lastMouseX = window.innerWidth;
+            if (lastMouseY < 0) lastMouseY = 0;
+            if (lastMouseY > window.innerHeight) lastMouseY = window.innerHeight;
+            
+            scheduleMagnifierUpdate();
+            
+            if (magMoveInterval) {
+                magMoveInterval = requestAnimationFrame(magMoveLoop);
+            }
+        }
         
         function startMagMove(dx, dy) {
             if (!isMagnifierMode) return;
-            if (!twoPageMode && dx !== 0) return; // Only allow Y movement for single page
 
-            if (magMoveInterval) clearInterval(magMoveInterval);
-            
-            magMoveInterval = setInterval(() => {
-                lastMouseX += dx;
-                lastMouseY += dy;
-                
-                if (lastMouseX < 0) lastMouseX = 0;
-                if (lastMouseX > window.innerWidth) lastMouseX = window.innerWidth;
-                if (lastMouseY < 0) lastMouseY = 0;
-                if (lastMouseY > window.innerHeight) lastMouseY = window.innerHeight;
-                
-                scheduleMagnifierUpdate();
-            }, 16);
+            magMoveDx = dx;
+            magMoveDy = dy;
+
+            if (!magMoveInterval) {
+                magMoveLastTime = 0;
+                magMoveInterval = requestAnimationFrame(magMoveLoop);
+            }
         }
 
         function stopMagMove() {
             if (magMoveInterval) {
-                clearInterval(magMoveInterval);
+                cancelAnimationFrame(magMoveInterval);
                 magMoveInterval = null;
             }
         }
@@ -548,25 +520,27 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
             
             const leftBtn = document.querySelector('.mag-left');
             const rightBtn = document.querySelector('.mag-right');
-            if (!twoPageMode) {
-                leftBtn.style.opacity = '0.2';
-                leftBtn.style.pointerEvents = 'none';
-                rightBtn.style.opacity = '0.2';
-                rightBtn.style.pointerEvents = 'none';
-            } else {
-                leftBtn.style.opacity = '1';
-                leftBtn.style.pointerEvents = 'auto';
-                rightBtn.style.opacity = '1';
-                rightBtn.style.pointerEvents = 'auto';
-            }
+            
+            // Always keep buttons active
+            leftBtn.style.opacity = '1';
+            leftBtn.style.pointerEvents = 'auto';
+            rightBtn.style.opacity = '1';
+            rightBtn.style.pointerEvents = 'auto';
         }
         
         function toggleMagnifierMode() {
             isMagnifierMode = !isMagnifierMode;
-            const btn = document.getElementById('magnifierModeBtn');
             const magGlass = document.getElementById('magnifierGlass');
+            
+            document.querySelectorAll('.magnifier-toggle-btn, #magnifierModeBtn').forEach(btn => {
+                if (isMagnifierMode) {
+                    btn.classList.add('active-mode', 'ring-4', 'ring-indigo-300', 'dark:ring-indigo-800');
+                } else {
+                    btn.classList.remove('active-mode', 'ring-4', 'ring-indigo-300', 'dark:ring-indigo-800');
+                }
+            });
+
             if (isMagnifierMode) {
-                btn.classList.add('active-mode');
                 
                 // Immediately fix the magnifier over the visible part of the PDF page
                 const visibleCanvas = Array.from(document.querySelectorAll('.pdf-canvas')).find(c => {
@@ -585,8 +559,10 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                 
                 scheduleMagnifierUpdate();
             } else {
-                btn.classList.remove('active-mode');
                 magGlass.style.display = 'none';
+                if (typeof stopAutoScanner === 'function' && typeof isAutoScanning !== 'undefined' && isAutoScanning) {
+                    stopAutoScanner();
+                }
             }
             updateMagControllerUI();
         }
@@ -652,14 +628,17 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
             const cRect = targetCanvas.getBoundingClientRect();
             
             let clampedY = lastMouseY;
+            let clampedX = lastMouseX;
             if (!twoPageMode) {
                 if (clampedY < cRect.top) clampedY = cRect.top;
                 if (clampedY > cRect.bottom) clampedY = cRect.bottom;
+                if (clampedX < cRect.left) clampedX = cRect.left;
+                if (clampedX > cRect.right) clampedX = cRect.right;
             }
             
             const scaleX = targetCanvas.width / cRect.width;
             const scaleY = targetCanvas.height / cRect.height;
-            const canvasX = lastMouseX - cRect.left;
+            const canvasX = clampedX - cRect.left;
             const canvasY = clampedY - cRect.top;
 
             // Safe draw helper to prevent IndexSizeError on some browsers
@@ -697,8 +676,10 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                 magGlass.style.width = magWidth + 'px';
                 magGlass.style.height = magHeight + 'px';
                 
-                // Position horizontally centered on canvas, vertically clamped to canvas bounds
-                magGlass.style.left = (cRect.left - (magWidth - cRect.width) / 2) + 'px';
+                // Position horizontally mapped to canvasX, vertically clamped to canvas bounds
+                let panFactor = canvasX / cRect.width;
+                if (isNaN(panFactor)) panFactor = 0.5;
+                magGlass.style.left = (cRect.left - (magWidth - cRect.width) * panFactor) + 'px';
                 magGlass.style.top = clampedY + 'px';
                 
                 magCtx.fillStyle = 'white';
@@ -832,33 +813,99 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
             }
         }
 
-        function applyPdfEnhancement(val) {
-            // val is 0 to 100. Default is 50.
-            // 0 -> Darkness
-            // 50 -> Normal
-            // 100 -> High HD Quality (High Contrast, Sharpness, brightness)
+        let activeEnhanceMode = 'all';
+        let enhanceValues = {
+            all: 50,
+            contrast: 50,
+            brightness: 50,
+            sharpness: 50,
+            darkness: 50,
+            hue: 50
+        };
+
+        function setEnhanceMode(mode) {
+            activeEnhanceMode = mode;
             
+            // Update buttons UI
+            document.querySelectorAll('.enhance-btn').forEach(btn => {
+                btn.classList.remove('active-enhance', 'bg-indigo-600', 'text-white');
+                btn.classList.add('bg-gray-200', 'text-gray-700', 'dark:bg-gray-700', 'dark:text-gray-300');
+            });
+            const activeBtn = document.getElementById('btn-enhance-' + mode);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-gray-200', 'text-gray-700', 'dark:bg-gray-700', 'dark:text-gray-300');
+                activeBtn.classList.add('active-enhance', 'bg-indigo-600', 'text-white');
+            }
+
+            // Update slider value
+            const slider = document.getElementById('enhanceSlider');
+            if (slider) {
+                slider.value = enhanceValues[mode];
+            }
+            const display = document.getElementById('enhanceValueDisplay');
+            if (display) {
+                display.textContent = enhanceValues[mode];
+            }
+        }
+
+        function applyPdfEnhancement(val) {
+            enhanceValues[activeEnhanceMode] = parseInt(val);
+            const display = document.getElementById('enhanceValueDisplay');
+            if (display) display.textContent = val;
+            updatePdfEnhancement();
+        }
+
+        function updatePdfEnhancement() {
             let contrast = 1;
             let brightness = 1;
             let saturate = 1;
-            
-            if (val < 50) {
-                // Darkness / Dimming
-                const factor = val / 50; // 0 to 1
-                brightness = 0.4 + (0.6 * factor); // 40% to 100%
-                contrast = 0.8 + (0.2 * factor); // 80% to 100%
-                saturate = 0.5 + (0.5 * factor); // 50% to 100%
+            let hue = 0;
+
+            // Apply 'all' first as a base
+            const allVal = enhanceValues['all'];
+            if (allVal < 50) {
+                const factor = allVal / 50; 
+                brightness *= 0.4 + (0.6 * factor); 
+                contrast *= 0.8 + (0.2 * factor); 
+                saturate *= 0.5 + (0.5 * factor); 
             } else {
-                // HD Enhance / Sharpness
-                const factor = (val - 50) / 50; // 0 to 1
-                brightness = 1 + (0.2 * factor); // up to 120%
-                contrast = 1 + (0.6 * factor); // up to 160% for crisp text
-                saturate = 1 + (0.5 * factor); // up to 150%
+                const factor = (allVal - 50) / 50; 
+                brightness *= 1 + (0.2 * factor); 
+                contrast *= 1 + (0.6 * factor); 
+                saturate *= 1 + (0.5 * factor); 
             }
-            
+
+            // Apply individual adjustments
+            const cVal = enhanceValues['contrast'];
+            if (cVal !== 50) {
+                contrast *= (cVal < 50) ? (0.5 + (cVal/100)) : (1 + ((cVal-50)/50));
+            }
+
+            const bVal = enhanceValues['brightness'];
+            if (bVal !== 50) {
+                brightness *= (bVal < 50) ? (0.2 + 0.8*(bVal/50)) : (1 + ((bVal-50)/50));
+            }
+
+            const sVal = enhanceValues['sharpness'];
+            if (sVal !== 50) {
+                contrast *= (sVal < 50) ? (0.8 + 0.2*(sVal/50)) : (1 + 0.8*((sVal-50)/50));
+                saturate *= (sVal < 50) ? (0.8 + 0.2*(sVal/50)) : (1 + 0.5*((sVal-50)/50));
+            }
+
+            const dVal = enhanceValues['darkness'];
+            if (dVal !== 50) {
+                brightness *= (dVal > 50) ? (1 - 0.8*((dVal-50)/50)) : (1 + ((50-dVal)/50));
+            }
+
+            const hVal = enhanceValues['hue'];
+            if (hVal !== 50) {
+                hue = ((hVal - 50) / 50) * 180;
+            }
+
             document.documentElement.style.setProperty('--pdf-enhance-contrast', contrast);
             document.documentElement.style.setProperty('--pdf-enhance-brightness', brightness);
             document.documentElement.style.setProperty('--pdf-enhance-saturate', saturate);
+            document.documentElement.style.setProperty('--pdf-enhance-hue', `${hue}deg`);
         }
 
         let zoomTimeout = null;
@@ -893,4 +940,189 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
             const container = document.getElementById('pdfContainer');
             const maxScroll = container.scrollWidth - container.clientWidth;
             container.scrollLeft = (val / 100) * maxScroll;
+        }
+
+        let autoScanInterval = null;
+        let isAutoScanning = false;
+        
+        function toggleAutoScanner() {
+            if (isAutoScanning) {
+                stopAutoScanner();
+            } else {
+                startAutoScanner();
+            }
+        }
+        
+        function startAutoScanner() {
+            if (twoPageMode) {
+                toggleViewMode(); // Single page mode for rectangular magnifier
+            }
+            if (!isMagnifierMode) {
+                toggleMagnifierMode();
+            }
+            
+            isAutoScanning = true;
+            const btn = document.getElementById('autoScanBtn');
+            if (btn) btn.classList.add('bg-orange-600', 'text-white');
+            
+            const container = document.getElementById('pdfContainer');
+            const targetCanvas = Array.from(document.querySelectorAll('.pdf-canvas')).find(c => {
+                const rect = c.getBoundingClientRect();
+                return rect.width > 0 && rect.height > 0;
+            });
+            
+            if (targetCanvas) {
+                const rect = targetCanvas.getBoundingClientRect();
+                lastMouseX = rect.left + (rect.width / 2);
+                lastMouseY = Math.max(rect.top, 0) + (window.innerHeight * 0.1); 
+            }
+        
+            let lastTime = performance.now();
+            
+            function scanLoop(time) {
+                if (!isAutoScanning) return;
+                
+                const delta = time - lastTime;
+                lastTime = time;
+                
+                // Move at ~60px per second
+                const moveAmount = (60 * delta) / 1000; 
+                const thresholdY = window.innerHeight * 0.8;
+                
+                if (lastMouseY < thresholdY) {
+                    lastMouseY += moveAmount;
+                } else {
+                    // Scroll the container
+                    container.scrollTop += moveAmount;
+                    
+                    // Check if we reached the bottom of the page
+                    const maxScroll = container.scrollHeight - container.clientHeight;
+                    if (container.scrollTop >= maxScroll - 5) {
+                        // We reached the bottom of this page. Go to next page!
+                        if (currentPage < pdfDoc.numPages) {
+                            nextPage();
+                            container.scrollTop = 0;
+                            lastMouseY = window.innerHeight * 0.1; // reset to top
+                        } else {
+                            // Reached end of document
+                            stopAutoScanner();
+                            return;
+                        }
+                    }
+                }
+                
+                scheduleMagnifierUpdate();
+                autoScanInterval = requestAnimationFrame(scanLoop);
+            }
+            
+            autoScanInterval = requestAnimationFrame(scanLoop);
+        }
+        
+        function stopAutoScanner() {
+            isAutoScanning = false;
+            const btn = document.getElementById('autoScanBtn');
+            if (btn) btn.classList.remove('bg-orange-600', 'text-white');
+            
+            if (autoScanInterval) {
+                cancelAnimationFrame(autoScanInterval);
+                autoScanInterval = null;
+            }
+            if (isMagnifierMode) {
+                toggleMagnifierMode();
+            }
+        }
+        
+        let pageViewPercent = 100;
+        function togglePageScale() {
+            if (pageViewPercent === 100) {
+                pageViewPercent = 80;
+            } else if (pageViewPercent === 80) {
+                pageViewPercent = 75;
+            } else {
+                pageViewPercent = 100;
+            }
+            
+            scale = 1.5 * (pageViewPercent / 100);
+            isZoomed = scale > 1.5;
+            
+            const btn = document.getElementById('pageScaleBtn');
+            if (btn) btn.textContent = pageViewPercent + '%';
+            
+            renderPage();
+        }
+
+        async function printAllPages() {
+            if (!pdfDoc) return;
+            
+            const btn = document.querySelector('button[title="Print All Pages"]');
+            const originalIcon = btn ? btn.innerHTML : '';
+            if (btn) {
+                // Show a loading spinner so the user knows it's working
+                btn.innerHTML = `<svg class="animate-spin w-6 h-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+                btn.style.pointerEvents = 'none';
+            }
+            
+            try {
+                // We'll create a print container
+                let printContainer = document.getElementById('pdf-print-container');
+                if (!printContainer) {
+                    printContainer = document.createElement('div');
+                    printContainer.id = 'pdf-print-container';
+                    printContainer.style.display = 'none'; // Hidden by default, shown via @media print
+                    document.body.appendChild(printContainer);
+                }
+                printContainer.innerHTML = '';
+                
+                const printScale = 1.5; 
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                for (let i = 1; i <= pdfDoc.numPages; i++) {
+                    const page = await pdfDoc.getPage(i);
+                    const viewport = page.getViewport({ scale: printScale });
+                    
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                    
+                    ctx.fillStyle = 'black';
+                    // Decreased text size by ~20% (32px to 25px)
+                    ctx.font = 'bold 25px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    // Placed 5% up from the bottom
+                    ctx.fillText(`pg. (${i})`, canvas.width / 2, canvas.height * 0.95);
+                    
+                    const img = document.createElement('img');
+                    img.src = canvas.toDataURL('image/jpeg', 0.85);
+                    
+                    printContainer.appendChild(img);
+                    
+                    page.cleanup();
+                }
+                
+                // Allow DOM to update before triggering print
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // Print the page using the native print dialog
+                window.print();
+                
+                // Cleanup after a delay to ensure print dialog caught the images
+                setTimeout(() => {
+                    if (printContainer) printContainer.innerHTML = '';
+                }, 2000);
+                
+            } catch (err) {
+                console.error("Print failed:", err);
+                alert("Printing failed. The document might be too large.");
+            } finally {
+                if (btn) {
+                    btn.innerHTML = originalIcon;
+                    btn.style.pointerEvents = 'auto';
+                }
+            }
         }
