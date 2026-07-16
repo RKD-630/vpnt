@@ -512,7 +512,9 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
         
         function updateMagControllerUI() {
             const magController = document.getElementById('magController');
-            if (!isMagnifierMode) {
+            const isTabOpen = (typeof currentMobileTab !== 'undefined' && currentMobileTab !== null);
+            
+            if (!isMagnifierMode || isTabOpen) {
                 magController.classList.remove('active');
                 return;
             }
@@ -811,6 +813,11 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                 panel.classList.remove('translate-y-full');
                 currentMobileTab = tabId;
             }
+            
+            // Re-evaluate controller visibility after tab state changes
+            if (typeof updateMagControllerUI === 'function') {
+                updateMagControllerUI();
+            }
         }
 
         let activeEnhanceMode = 'all';
@@ -860,6 +867,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
             let brightness = 1;
             let saturate = 1;
             let hue = 0;
+            let sepia = 0;
 
             // Apply 'all' first as a base
             const allVal = enhanceValues['all'];
@@ -900,12 +908,15 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
             const hVal = enhanceValues['hue'];
             if (hVal !== 50) {
                 hue = ((hVal - 50) / 50) * 180;
+                // Add a sepia base so hue rotation works on black & white PDFs
+                sepia = Math.abs(hVal - 50) / 50; 
             }
 
             document.documentElement.style.setProperty('--pdf-enhance-contrast', contrast);
             document.documentElement.style.setProperty('--pdf-enhance-brightness', brightness);
             document.documentElement.style.setProperty('--pdf-enhance-saturate', saturate);
             document.documentElement.style.setProperty('--pdf-enhance-hue', `${hue}deg`);
+            document.documentElement.style.setProperty('--pdf-enhance-sepia', sepia);
         }
 
         let zoomTimeout = null;

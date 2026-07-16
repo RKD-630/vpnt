@@ -68,7 +68,7 @@
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
             background: white;
             transition: filter 0.2s ease;
-            filter: contrast(var(--pdf-enhance-contrast)) brightness(var(--pdf-enhance-brightness)) saturate(var(--pdf-enhance-saturate)) hue-rotate(var(--pdf-enhance-hue));
+            filter: contrast(var(--pdf-enhance-contrast)) brightness(var(--pdf-enhance-brightness)) saturate(var(--pdf-enhance-saturate)) sepia(var(--pdf-enhance-sepia)) hue-rotate(var(--pdf-enhance-hue));
         }
 
         .pages-container {
@@ -362,6 +362,7 @@
             --pdf-enhance-brightness: 1;
             --pdf-enhance-saturate: 1;
             --pdf-enhance-hue: 0deg;
+            --pdf-enhance-sepia: 0;
         }
 
         .bg-mode-black canvas {
