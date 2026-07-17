@@ -1,333 +1,291 @@
 <!DOCTYPE html><html lang="en"><head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>BookRack - PDF Reader</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet" />
-    
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+<title>PDF Reader &amp; Page Number Printer</title>
+
+<!-- PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- pdf-lib -->
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <link rel="stylesheet" href="style.css" /></head>
-<body class="antialiased">
+<body>
 
-    <!-- Library View -->
-    <div id="libraryView" class="min-h-screen p-4 md:p-8 library-bg">
-        <div class="max-w-7xl mx-auto mb-8">
-            <div class="glass-panel rounded-2xl p-6 shadow-2xl">
-                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <h1 class="text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">BookRack</h1>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Your Personal PDF Library</p>
-                        </div>
-                    </div>
-                    
-                    <div class="flex gap-3 flex-wrap justify-center">
-                        <button onclick="toggleDarkMode()" class="p-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-                            </svg>
-                        </button>
-                        <button onclick="document.getElementById('fileInput').click()" class="import-btn px-6 py-3 rounded-xl text-white font-semibold flex items-center gap-2 shadow-lg">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                            </svg>
-                            Import PDF
-                        </button>
-                        <button onclick="document.getElementById('folderInput').click()" class="import-btn px-6 py-3 rounded-xl text-white font-semibold flex items-center gap-2 shadow-lg">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
-                            </svg>
-                            Import Folder
-                        </button>
-                    </div>
-                </div>
-            </div>
+<!-- Toolbar -->
+<div class="toolbar">
+  <div class="brand">📄 PDF Page Printer</div>
+  <button class="btn primary" id="btnImport">
+    <span>📂</span><span class="label">Import PDF</span>
+  </button>
+  <button class="btn" id="btnNew" disabled="" title="Open New PDF">
+    <span>🆕</span><span class="label">New</span>
+  </button>
+  <button class="btn" id="btnMGlass" disabled="" title="Magnifier Glass">M-Glass</button>
+  
+
+  <div class="spacer"></div>
+
+  <button class="btn" id="btnPreview" disabled="" title="Print Preview">
+    <span>👁️</span><span class="label">Preview</span>
+  </button>
+  <button class="btn primary" id="btnPrint" disabled="" title="Print PDF">
+    <span>🖨️</span><span class="label">Print PDF</span>
+  </button>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <div class="viewer-wrap">
+    <div class="file-info" id="fileInfo" style="display:none;">
+      <span>File: <b id="infoName">—</b></span>
+      <span>Size: <b id="infoSize">—</b></span>
+      <span>Pages: <b id="infoPages">—</b></span>
+    </div>
+    <div class="viewer" id="viewer">
+      <div class="dropzone" id="dropzone">
+        <div class="icon">📄</div>
+        <h3>Drop PDF here or click to upload</h3>
+        <p>Supports multi-page PDFs • Works on mobile &amp; desktop</p>
+      </div>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="card" id="card-adjustment">
+      <h4>Adjustment</h4>
+      <div class="card-body">
+        <div class="field" style="display: flex; gap: 4px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap;">
+           <button class="btn icon" id="btnZoomOut" disabled="" title="Zoom Out">🔍−</button>
+           <button class="btn icon" id="btnZoomIn" disabled="" title="Zoom In">🔍+</button>
+           <button class="btn icon" id="btnFitWidth" disabled="" title="Fit Width">⇔</button>
+           <button class="btn icon" id="btnFitPage" disabled="" title="Fit Page">⤢</button>
+           <button class="btn icon" id="btnRotLeft" disabled="" title="Rotate Left">↺</button>
+           <button class="btn icon" id="btnRotRight" disabled="" title="Rotate Right">↻</button>
         </div>
-
-        <input type="file" id="fileInput" accept=".pdf" multiple="" class="hidden" onchange="handleFiles(this.files)" />
-        <input type="file" id="folderInput" webkitdirectory="" directory="" multiple="" class="hidden" onchange="handleFiles(this.files)" />
-
-        <div id="booksGrid" class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"></div>
-
-        <div id="emptyState" class="max-w-7xl mx-auto text-center py-20">
-            <div class="glass-panel rounded-3xl p-12 inline-block">
-                <div class="w-24 h-24 bg-gradient-to-br from-purple-400 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
-                    <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                    </svg>
-                </div>
-                <h2 class="text-2xl font-bold mb-2">Your Library is Empty</h2>
-                <p class="text-gray-500 mb-6">Import PDF files to start reading</p>
-                <button onclick="document.getElementById('fileInput').click()" class="import-btn px-8 py-3 rounded-xl text-white font-semibold shadow-lg">
-                    Add Your First Book
-                </button>
-            </div>
+        <div class="field">
+          <label>Page Background</label>
+          <div class="seg" id="quickBg" style="flex-wrap: wrap;">
+            <button data-val="white" class="active" style="flex:1 1 45%;">White</button>
+            <button data-val="black" style="flex:1 1 45%;">Black</button>
+            <button data-val="dim" style="flex:1 1 45%;">Dim</button>
+            <button data-val="yellow" style="flex:1 1 45%;">Yellow</button>
+          </div>
         </div>
+        <hr style="border:0; border-top:1px solid var(--border); margin: 5px 0;" />
+        <div class="field">
+          <div class="seg" id="adjType" style="flex-wrap: wrap;">
+            <button data-val="brightness" class="active" style="flex:1 1 45%;">Brightness</button>
+            <button data-val="contrast" style="flex:1 1 45%;">Contrast</button>
+            <button data-val="darkness" style="flex:1 1 45%;">Darkness</button>
+            <button data-val="darktext" style="flex:1 1 45%;">Dark Text</button>
+          </div>
+        </div>
+        <div class="field" style="margin-top:15px;">
+          <input type="range" id="adjSlider" min="0" max="200" value="100" style="width:100%;" />
+        </div>
+      </div>
     </div>
 
-    <!-- Reader View -->
-    <div id="readerView" class="hidden fixed inset-0 bg-gray-900 z-50 overflow-hidden">
-        <!-- Top Bar -->
-        <div class="absolute top-0 left-0 right-0 z-20 p-4 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent">
-            <button onclick="closeReader()" class="p-3 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 transition-all text-white">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                </svg>
-            </button>
-            <div class="text-white text-center flex-1 mx-4 min-w-0">
-                <h3 id="readerTitle" class="font-semibold truncate mx-auto"></h3>
-                <p id="pageIndicator" class="text-sm opacity-80">Pages 1-2 of 10</p>
-            </div>
-            <div id="headerToolbar" class="flex items-center gap-2 overflow-x-auto hide-scrollbar cursor-grab active:cursor-grabbing max-w-[55vw] md:max-w-none py-1" onmousedown="startToolbarDrag(event)" onmouseleave="stopToolbarDrag()" onmouseup="stopToolbarDrag()" onmousemove="toolbarDragMove(event)">
-                <!-- View Mode Toggle -->
-                <button onclick="toggleViewMode()" id="viewModeBtn" class="mode-btn active-mode p-3 rounded-full bg-white/20 backdrop-blur-md transition-all text-white" title="Toggle Two-Page View">
-                    <svg id="viewModeIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
-                    </svg>
-                </button>
-                
-                <!-- Tool Group: Zoom, Magnifier, Background -->
-                <div class="flex items-center bg-white/20 backdrop-blur-md rounded-full overflow-hidden">
-                    <!-- Prev Page -->
-                    <button onclick="previousPage()" class="p-3 hover:bg-white/30 transition-all text-white border-r border-white/10" title="Previous Page">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                        </svg>
-                    </button>
-                    <!-- Next Page -->
-                    <button onclick="nextPage()" class="p-3 hover:bg-white/30 transition-all text-white border-r border-white/10" title="Next Page">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                        </svg>
-                    </button>
-                    <!-- Zoom In -->
-                    <button onclick="zoomIn()" class="p-3 hover:bg-white/30 transition-all text-white border-r border-white/10" title="Zoom In">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/>
-                        </svg>
-                    </button>
-                    <!-- Zoom Out -->
-                    <button onclick="zoomOut()" class="p-3 hover:bg-white/30 transition-all text-white border-r border-white/10" title="Zoom Out">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"/>
-                        </svg>
-                    </button>
-                    <!-- Magnifier Mode Toggle -->
-                    <button onclick="toggleMagnifierMode()" id="magnifierModeBtn" class="mode-btn p-3 hover:bg-white/30 transition-all text-white border-r border-white/10" title="Toggle Magnifier Lens">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                            <circle cx="10" cy="10" r="2" fill="currentColor"/>
-                        </svg>
-                    </button>
-                    <!-- Background Mode Toggle -->
-                    <button onclick="togglePdfBackground()" id="pdfBgBtn" class="mode-btn p-3 hover:bg-white/30 transition-all text-white" title="Toggle Background Color (White/Black/Dim)">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
+    <div class="card" id="card-quick">
+      <h4>Quick Settings</h4>
+      <div class="card-body">
+        <label class="switch">
+          <input type="checkbox" id="quickEnable" checked="" />
+          Enable Page Numbers
+        </label>
+        <div class="field">
+          <label>Position</label>
+          <div class="seg" id="quickPos" style="flex-wrap: wrap;">
+            <button data-val="left" style="flex:1 1 30%;">Left</button>
+            <button data-val="center" class="active" style="flex:1 1 30%;">Center</button>
+            <button data-val="right" style="flex:1 1 30%;">Right</button>
+            <button data-val="left-vertical" style="flex:1 1 45%;">Left Vert</button>
+            <button data-val="right-vertical" style="flex:1 1 45%;">Right Vert</button>
+          </div>
         </div>
-
-        <!-- Scroll Controls (Right Center) -->
-        <div id="scrollControls" class="scroll-controls absolute right-4 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-3">
-            <button onclick="scrollUp()" class="scroll-btn w-12 h-12 rounded-full bg-white/90 hover:bg-white text-gray-800 flex items-center justify-center shadow-2xl backdrop-blur-md relative overflow-hidden">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
-                </svg>
-            </button>
-            <button onclick="scrollDown()" class="scroll-btn w-12 h-12 rounded-full bg-white/90 hover:bg-white text-gray-800 flex items-center justify-center shadow-2xl backdrop-blur-md relative overflow-hidden">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                </svg>
-            </button>
+        <div class="field">
+          <label>Style</label>
+          <select id="quickStyle">
+            <option value="1">1</option>
+            <option value="01">01</option>
+            <option value="Page 1" selected="">Page 1</option>
+            <option value="Page 1 of 25">Page 1 of 25</option>
+            <option value="1 / 25">1 / 25</option>
+            <option value="custom">Custom…</option>
+          </select>
         </div>
-
-        <!-- Print Control (Left Center) -->
-        <div class="absolute left-4 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-3">
-            <button onclick="printAllPages()" class="w-12 h-12 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shadow-2xl backdrop-blur-md relative overflow-hidden transition-all border border-indigo-500" title="Print All Pages">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                </svg>
-            </button>
+        <div class="field" id="customFmtWrap" style="display:none;">
+          <label>Custom Format (use {n}, {total})</label>
+          <input type="text" id="customFmt" value="Page {n} of {total}" />
         </div>
-
-        <!-- PDF Container -->
-        <div class="absolute inset-0 flex p-4 md:p-12 overflow-auto" id="pdfContainer">
-            <div class="pages-container m-auto" id="pagesContainer">
-                <!-- Left Page -->
-                <div class="page-wrapper" id="pageWrapperLeft">
-                    <canvas id="pdfCanvasLeft" class="pdf-canvas"></canvas>
-                </div>
-                <!-- Book Binding (visible only in two-page mode) -->
-                <div class="book-binding hidden" id="bookBinding"></div>
-                <!-- Right Page -->
-                <div class="page-wrapper" id="pageWrapperRight">
-                    <canvas id="pdfCanvasRight" class="pdf-canvas"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Magnifier Glass Element -->
-        <div id="magnifierGlass" class="magnifier-glass">
-            <canvas id="magnifierCanvas"></canvas>
-            <div id="magnifierHandle" class="magnifier-handle" title="Double click to detach/attach. Drag to move when detached."></div>
-        </div>
-
-        <!-- Magnifier Controller (D-pad) -->
-        <div id="magController" class="mag-controller">
-            <button class="mag-btn mag-up" onmousedown="startMagMove(0, -6)" onmouseup="stopMagMove()" onmouseleave="stopMagMove()" ontouchstart="startMagMove(0, -6)" ontouchend="stopMagMove()">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
-            </button>
-            <button class="mag-btn mag-left" onmousedown="startMagMove(-6, 0)" onmouseup="stopMagMove()" onmouseleave="stopMagMove()" ontouchstart="startMagMove(-6, 0)" ontouchend="stopMagMove()">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-            </button>
-            <div class="mag-center"></div>
-            <button class="mag-btn mag-right" onmousedown="startMagMove(6, 0)" onmouseup="stopMagMove()" onmouseleave="stopMagMove()" ontouchstart="startMagMove(6, 0)" ontouchend="stopMagMove()">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-            </button>
-            <button class="mag-btn mag-down" onmousedown="startMagMove(0, 6)" onmouseup="stopMagMove()" onmouseleave="stopMagMove()" ontouchstart="startMagMove(0, 6)" ontouchend="stopMagMove()">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-            </button>
-        </div>
-
-        <!-- Touch Zones -->
-        <div class="touch-zone touch-zone-left" onclick="previousPage()">
-            <div class="touch-hint left-4">‹</div>
-        </div>
-        <div class="touch-zone touch-zone-right" onclick="nextPage()">
-            <div class="touch-hint right-4">›</div>
-        </div>
-
-        <!-- Floating Magnifier Button -->
-        <button onclick="toggleMagnifierMode()" class="magnifier-toggle-btn fixed bottom-[88px] right-4 z-50 w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shadow-2xl transition-all border border-indigo-500">
-            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                <circle cx="10" cy="10" r="2" fill="currentColor"/>
-            </svg>
-        </button>
-
-        <!-- Mobile Bottom Navigation -->
-        <nav id="mobileNavBar" class="lg:hidden landscape:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 z-50 flex justify-around p-2 shadow-lg">
-            <button onclick="toggleMobileTab('setting')" class="p-2 flex flex-col items-center text-gray-600 dark:text-gray-400 hover:text-indigo-600 transition-colors">
-                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                <span class="text-[10px] font-medium uppercase tracking-wider">Setting</span>
-            </button>
-            <button onclick="toggleMobileTab('display')" class="p-2 flex flex-col items-center text-gray-600 dark:text-gray-400 hover:text-indigo-600 transition-colors">
-                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                <span class="text-[10px] font-medium uppercase tracking-wider">Display</span>
-            </button>
-            <button onclick="toggleMobileTab('move')" class="p-2 flex flex-col items-center text-gray-600 dark:text-gray-400 hover:text-indigo-600 transition-colors">
-                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
-                <span class="text-[10px] font-medium uppercase tracking-wider">Move</span>
-            </button>
-        </nav>
-
-        <!-- Mobile Tab Panels -->
-        <div id="mobileTabsPanel" class="lg:hidden landscape:hidden fixed bottom-[64px] left-0 right-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border-t border-gray-200 dark:border-gray-700 z-40 p-6 transition-transform duration-300 translate-y-full shadow-2xl rounded-t-3xl">
-            
-            <!-- Setting Tab -->
-            <div id="tab-setting" class="mobile-tab-content hidden flex-col gap-5">
-                <div class="text-center">
-                    <h3 class="font-bold text-gray-800 dark:text-gray-200 text-lg mb-1">Image Adjustments</h3>
-                    <p class="text-xs text-gray-500">Select a property and adjust</p>
-                </div>
-                
-                <div class="flex flex-wrap gap-2 justify-center px-1">
-                    <button onclick="setEnhanceMode('all')" id="btn-enhance-all" class="enhance-btn active-enhance px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 text-white transition-colors">All</button>
-                    <button onclick="setEnhanceMode('contrast')" id="btn-enhance-contrast" class="enhance-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 transition-colors">Contrast</button>
-                    <button onclick="setEnhanceMode('brightness')" id="btn-enhance-brightness" class="enhance-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 transition-colors">Brightness</button>
-                    <button onclick="setEnhanceMode('sharpness')" id="btn-enhance-sharpness" class="enhance-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 transition-colors">Sharpness</button>
-                    <button onclick="setEnhanceMode('darkness')" id="btn-enhance-darkness" class="enhance-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 transition-colors">Darkness</button>
-                    <button onclick="setEnhanceMode('hue')" id="btn-enhance-hue" class="enhance-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 transition-colors">Hue</button>
-                </div>
-
-                <div class="px-2 mt-2">
-                    <input type="range" id="enhanceSlider" min="0" max="100" value="50" oninput="applyPdfEnhancement(this.value)" class="w-full h-3 bg-gray-200 rounded-full appearance-none cursor-pointer dark:bg-gray-700 accent-indigo-600" />
-                    <div class="flex justify-between text-[10px] text-gray-400 mt-2 font-medium">
-                        <span>0</span>
-                        <span id="enhanceValueDisplay" class="text-indigo-600 dark:text-indigo-400 font-bold text-xs">50</span>
-                        <span>100</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Display Tab -->
-            <div id="tab-display" class="mobile-tab-content hidden flex-col gap-4">
-                <div class="text-center">
-                    <h3 class="font-bold text-gray-800 dark:text-gray-200 text-lg mb-1">Display & View</h3>
-                </div>
-                
-                <!-- Display Mode Toggles (One Line) -->
-                <div class="flex gap-2 justify-between px-1">
-                    <button onclick="togglePdfBackground()" class="py-2 px-1 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900/50 dark:hover:bg-indigo-800 text-indigo-700 dark:text-indigo-300 rounded-lg font-bold text-xs flex-1 transition-colors shadow-sm text-center">
-                        Background
-                    </button>
-                    <button onclick="toggleViewMode()" class="py-2 px-1 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/50 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 rounded-lg font-bold text-xs flex-1 transition-colors shadow-sm text-center">
-                        Two-Page
-                    </button>
-                    <button onclick="toggleFullScreen()" class="py-2 px-1 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/50 dark:hover:bg-emerald-800 text-emerald-700 dark:text-emerald-300 rounded-lg font-bold text-xs flex-1 transition-colors shadow-sm text-center">
-                        Full Screen
-                    </button>
-                    <button onclick="togglePageScale()" id="pageScaleBtn" class="py-2 px-1 bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/50 dark:hover:bg-purple-800 text-purple-700 dark:text-purple-300 rounded-lg font-bold text-xs flex-1 transition-colors shadow-sm text-center">
-                        100%
-                    </button>
-                </div>
-
-                <!-- Zoom and Auto Scan Controls -->
-                <div class="flex gap-3 justify-between items-center px-1 mt-1">
-                    <div class="flex gap-2 flex-1">
-                        <button onclick="zoomOut()" class="py-2 px-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:text-white rounded-lg font-bold text-lg flex-1 shadow-sm transition-colors flex items-center justify-center">-</button>
-                        <button onclick="zoomIn()" class="py-2 px-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:text-white rounded-lg font-bold text-lg flex-1 shadow-sm transition-colors flex items-center justify-center">+</button>
-                    </div>
-                    
-                    <button onclick="toggleAutoScanner()" id="autoScanBtn" class="py-2 px-4 bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 rounded-lg font-bold text-xs flex-1 transition-colors shadow-sm flex items-center justify-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 13l-7 7-7-7m14-8l-7 7-7-7" /></svg>
-                        Auto Scan
-                    </button>
-                </div>
-            </div>
-
-            <!-- Move Tab -->
-            <div id="tab-move" class="mobile-tab-content hidden flex-col gap-6">
-                <div class="text-center">
-                    <h3 class="font-bold text-gray-800 dark:text-gray-200 text-lg mb-1">Move &amp; Zoom</h3>
-                </div>
-                
-                <div class="flex justify-center mb-[-10px]">
-                    <button onclick="toggleMagnifierMode()" class="magnifier-toggle-btn py-3 px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg flex items-center gap-3 w-full justify-center">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                            <circle cx="10" cy="10" r="2" fill="currentColor"/>
-                        </svg>
-                        Toggle Magnifier Mode
-                    </button>
-                </div>
-
-                <div class="flex flex-col gap-5 px-2">
-                    <div>
-                        <label class="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-2 block">Zoom Level</label>
-                        <input type="range" min="50" max="250" value="100" oninput="applyMobileZoom(this.value)" class="w-full h-3 bg-gray-200 rounded-full appearance-none cursor-pointer dark:bg-gray-700 accent-blue-500" />
-                    </div>
-                    <div>
-                        <label class="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-2 block">Up &amp; Down</label>
-                        <input type="range" min="0" max="100" value="0" oninput="applyMobileScrollY(this.value)" class="w-full h-3 bg-gray-200 rounded-full appearance-none cursor-pointer dark:bg-gray-700 accent-green-500" />
-                    </div>
-                    <div>
-                        <label class="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-2 block">Right &amp; Left</label>
-                        <input type="range" min="0" max="100" value="0" oninput="applyMobileScrollX(this.value)" class="w-full h-3 bg-gray-200 rounded-full appearance-none cursor-pointer dark:bg-gray-700 accent-orange-500" />
-                    </div>
-                </div>
-            </div>
-        </div>
-
+      </div>
     </div>
 
-    
+    <div class="card" id="card-font">
+      <h4>Font</h4>
+      <div class="card-body">
+        <div class="field">
+          <label>Font Family</label>
+          <select id="fontFamily">
+            <option value="Helvetica">Helvetica</option>
+            <option value="TimesRoman">Times Roman</option>
+            <option value="Courier">Courier</option>
+          </select>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Size (pt)</label>
+            <input type="number" id="fontSize" value="11" min="6" max="48" />
+          </div>
+          <div class="field">
+            <label>Color</label>
+            <input type="color" id="fontColor" value="#000000" />
+          </div>
+        </div>
+        <div class="row">
+          <label class="switch"><input type="checkbox" id="fontBold" /> Bold</label>
+          <label class="switch"><input type="checkbox" id="fontItalic" /> Italic</label>
+        </div>
+        <div class="field">
+          <label>Margin from bottom (pt): <span id="marginVal">30</span></label>
+          <input type="range" id="marginBottom" min="10" max="100" value="30" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>Actions</h4>
+      <div class="card-body">
+        <button class="btn primary" id="btnPrintBig" disabled="">🖨️ Large Print PDF</button>
+        <button class="btn" id="btnDownload" disabled="">💾 Download Modified PDF</button>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- Mobile Bottom Nav -->
+<nav class="mobile-bottom-nav">
+  <button class="nav-btn" onclick="toggleSidebar()">☰<br /><small>Menu</small></button>
+  <button class="nav-btn" id="btnNavScrollUp">↑<br /><small>Scroll Up</small></button>
+  <button class="nav-btn" id="btnNavScrollDown">↓<br /><small>Scroll Down</small></button>
+</nav>
+
+<!-- Print Preview Modal -->
+<div class="modal-backdrop" id="previewModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 style="flex:1;">Print & Download Preview</h3>
+      <div style="font-size: 12px; opacity: 0.7; font-weight: normal; margin-right: 15px;">(Scroll vertically)</div>
+      <button class="btn icon" id="closePreview">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="row" style="margin-bottom:14px;">
+        <div class="field">
+          <label>Orientation</label>
+          <select id="orient">
+            <option value="portrait">Portrait</option>
+            <option value="landscape">Landscape</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Paper Size</label>
+          <select id="paperSize">
+            <option value="a4">A4</option>
+            <option value="a3">A3</option>
+            <option value="letter">Letter</option>
+            <option value="legal">Legal</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:14px;">
+        <div class="field">
+          <label>Margins</label>
+          <select id="margins">
+            <option value="0">None</option>
+            <option value="10">Small</option>
+            <option value="20" selected="">Medium</option>
+            <option value="40">Large</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Scaling</label>
+          <select id="scaling">
+            <option value="actual">Actual Size</option>
+            <option value="fit" selected="">Fit to Page</option>
+            <option value="fill">Fill Page</option>
+          </select>
+        </div>
+      </div>
+      <div class="print-preview-area" id="previewArea"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="closePreview2">Close</button>
+      <button class="btn primary" id="doPrint">🖨️ Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- Print Options Modal -->
+<div class="modal-backdrop" id="printModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Print Options</h3>
+      <button class="btn icon" id="closePrint">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Pages</label>
+        <div class="seg" id="pageRange">
+          <button data-val="all" class="active">All</button>
+          <button data-val="current">Current</button>
+          <button data-val="range">Range</button>
+          <button data-val="odd">Odd</button>
+          <button data-val="even">Even</button>
+        </div>
+      </div>
+      <div class="field" id="rangeWrap" style="display:none;">
+        <label>Page Range (e.g. 1-5, 8, 10-12)</label>
+        <input type="text" id="rangeInput" placeholder="1-10" />
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Copies</label>
+          <input type="number" id="copies" value="1" min="1" max="99" />
+        </div>
+        <div class="field">
+          <label>Current Page</label>
+          <input type="number" id="currentPage" value="1" min="1" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="closePrint2">Cancel</button>
+      <button class="btn primary" id="confirmPrint">Print</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept="application/pdf" style="display:none" />
+
+<div class="toast" id="toast"></div>
+<div class="loading" id="loading"><div class="spinner"></div></div>
+
+<div class="magnifier-wrapper rect" id="magnifierRect">
+  <div class="magnifier-inner">
+    <canvas id="magnifierCanvas"></canvas>
+  </div>
+  <div class="magnifier-handle"></div>
+</div>
+
+<div class="mag-controller" id="magController">
+  <button class="mag-btn mag-up" data-dir="up">↑</button>
+  <button class="mag-btn mag-left" data-dir="left">←</button>
+  <button class="mag-btn mag-center" data-dir="center">○</button>
+  <button class="mag-btn mag-right" data-dir="right">→</button>
+  <button class="mag-btn mag-down" data-dir="down">↓</button>
+</div>
+
+
 
 <script src="script.js"></script></body></html>
