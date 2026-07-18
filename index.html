@@ -6,7 +6,8 @@
 <!-- PDF.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <!-- pdf-lib -->
-<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+
 <link rel="stylesheet" href="style.css" /></head>
 <body>
 
@@ -19,17 +20,27 @@
   <button class="btn" id="btnNew" disabled="" title="Open New PDF">
     <span>🆕</span><span class="label">New</span>
   </button>
-  <button class="btn" id="btnMGlass" disabled="" title="Magnifier Glass">M-Glass</button>
-  
-
+  <div style="position: relative;" id="mGlassWrap">
+    <button class="btn" id="btnMGlass" disabled="" title="Magnifier Glass">
+      <span class="label">M-Glass</span>
+    </button>
+    <div class="m-glass-dropdown" id="mGlassDropdown">
+      <button data-mode="1">M-Glass: Rect</button>
+      <button data-mode="2">M-Glass: Circle</button>
+      <button data-mode="0">Off</button>
+    </div>
+  </div>
   <div class="spacer"></div>
-
+  <button class="btn" id="btnFooter" disabled="" title="Page Number Settings">
+    <span>🔢</span><span class="label">Page Numbers</span>
+  </button>
   <button class="btn" id="btnPreview" disabled="" title="Print Preview">
     <span>👁️</span><span class="label">Preview</span>
   </button>
   <button class="btn primary" id="btnPrint" disabled="" title="Print PDF">
     <span>🖨️</span><span class="label">Print PDF</span>
   </button>
+  <button class="btn icon" id="btnTheme" title="Toggle Theme">🌙</button>
 </div>
 
 <!-- Main -->
@@ -50,41 +61,6 @@
   </div>
 
   <aside class="sidebar">
-    <div class="card" id="card-adjustment">
-      <h4>Adjustment</h4>
-      <div class="card-body">
-        <div class="field" style="display: flex; gap: 4px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap;">
-           <button class="btn icon" id="btnZoomOut" disabled="" title="Zoom Out">🔍−</button>
-           <button class="btn icon" id="btnZoomIn" disabled="" title="Zoom In">🔍+</button>
-           <button class="btn icon" id="btnFitWidth" disabled="" title="Fit Width">⇔</button>
-           <button class="btn icon" id="btnFitPage" disabled="" title="Fit Page">⤢</button>
-           <button class="btn icon" id="btnRotLeft" disabled="" title="Rotate Left">↺</button>
-           <button class="btn icon" id="btnRotRight" disabled="" title="Rotate Right">↻</button>
-        </div>
-        <div class="field">
-          <label>Page Background</label>
-          <div class="seg" id="quickBg" style="flex-wrap: wrap;">
-            <button data-val="white" class="active" style="flex:1 1 45%;">White</button>
-            <button data-val="black" style="flex:1 1 45%;">Black</button>
-            <button data-val="dim" style="flex:1 1 45%;">Dim</button>
-            <button data-val="yellow" style="flex:1 1 45%;">Yellow</button>
-          </div>
-        </div>
-        <hr style="border:0; border-top:1px solid var(--border); margin: 5px 0;" />
-        <div class="field">
-          <div class="seg" id="adjType" style="flex-wrap: wrap;">
-            <button data-val="brightness" class="active" style="flex:1 1 45%;">Brightness</button>
-            <button data-val="contrast" style="flex:1 1 45%;">Contrast</button>
-            <button data-val="darkness" style="flex:1 1 45%;">Darkness</button>
-            <button data-val="darktext" style="flex:1 1 45%;">Dark Text</button>
-          </div>
-        </div>
-        <div class="field" style="margin-top:15px;">
-          <input type="range" id="adjSlider" min="0" max="200" value="100" style="width:100%;" />
-        </div>
-      </div>
-    </div>
-
     <div class="card" id="card-quick">
       <h4>Quick Settings</h4>
       <div class="card-body">
@@ -93,14 +69,23 @@
           Enable Page Numbers
         </label>
         <div class="field">
+          <label>PDF Background</label>
+          <select id="quickBg">
+            <option value="white" selected="">White</option>
+            <option value="black">Black</option>
+            <option value="dim">Dim</option>
+            <option value="yellow">Yellow</option>
+          </select>
+        </div>
+        <div class="field">
           <label>Position</label>
-          <div class="seg" id="quickPos" style="flex-wrap: wrap;">
-            <button data-val="left" style="flex:1 1 30%;">Left</button>
-            <button data-val="center" class="active" style="flex:1 1 30%;">Center</button>
-            <button data-val="right" style="flex:1 1 30%;">Right</button>
-            <button data-val="left-vertical" style="flex:1 1 45%;">Left Vert</button>
-            <button data-val="right-vertical" style="flex:1 1 45%;">Right Vert</button>
-          </div>
+          <select id="quickPos">
+            <option value="left">Left</option>
+            <option value="center" selected="">Center</option>
+            <option value="right">Right</option>
+            <option value="left-vertical">Left Vert</option>
+            <option value="right-vertical">Right Vert</option>
+          </select>
         </div>
         <div class="field">
           <label>Style</label>
@@ -152,11 +137,47 @@
       </div>
     </div>
 
-    <div class="card">
-      <h4>Actions</h4>
+    <div class="card" id="card-adjustment">
+      <h4>Adjustment</h4>
       <div class="card-body">
-        <button class="btn primary" id="btnPrintBig" disabled="">🖨️ Large Print PDF</button>
-        <button class="btn" id="btnDownload" disabled="">💾 Download Modified PDF</button>
+        <div class="field" style="display: flex; gap: 4px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap;">
+           <button class="btn icon" id="btnZoomOut" disabled="" title="Zoom Out">🔍−</button>
+           <button class="btn icon" id="btnZoomIn" disabled="" title="Zoom In">🔍+</button>
+           <button class="btn icon" id="btnFitWidth" disabled="" title="Fit Width">⇔</button>
+           <button class="btn icon" id="btnFitPage" disabled="" title="Fit Page">⤢</button>
+           <button class="btn icon" id="btnRotLeft" disabled="" title="Rotate Left">↺</button>
+           <button class="btn icon" id="btnRotRight" disabled="" title="Rotate Right">↻</button>
+        </div>
+        <div class="field">
+          <div class="seg" id="adjType" style="flex-wrap: wrap;">
+            <button data-val="brightness" class="active" style="flex:1 1 45%;">Brightness</button>
+            <button data-val="contrast" style="flex:1 1 45%;">Contrast</button>
+            <button data-val="darkness" style="flex:1 1 45%;">Darkness</button>
+            <button data-val="hue" style="flex:1 1 45%;">Hue</button>
+          </div>
+        </div>
+        <div class="field" style="margin-top:15px;">
+          <input type="range" id="adjSlider" min="0" max="200" value="100" style="width:100%;" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="card-option">
+      <h4>Option</h4>
+      <div class="card-body">
+        <div style="position: relative; width: 100%;">
+          <button class="btn" id="btnMGlassMobile" disabled="" style="width:100%; justify-content:center;">
+            <span class="label">M-Glass Options</span>
+          </button>
+          <div class="m-glass-dropdown" id="mGlassDropdownMobile" style="width:100%; text-align:center;">
+            <button data-mode="1" style="width:100%; text-align:center;">M-Glass: Rect</button>
+            <button data-mode="2" style="width:100%; text-align:center;">M-Glass: Circle</button>
+            <button data-mode="0" style="width:100%; text-align:center;">Off</button>
+          </div>
+        </div>
+        <button class="btn" id="btnPreviewMobile" disabled="" style="width:100%; justify-content:center;">👁️ Preview</button>
+        <button class="btn primary" id="btnPrintBig" disabled="" style="width:100%; justify-content:center;">🖨️ Large Print PDF</button>
+        <button class="btn" id="btnDownload" disabled="" style="width:100%; justify-content:center;">💾 Download Modified PDF</button>
       </div>
     </div>
   </aside>
@@ -164,17 +185,16 @@
 
 <!-- Mobile Bottom Nav -->
 <nav class="mobile-bottom-nav">
-  <button class="nav-btn" onclick="toggleSidebar()">☰<br /><small>Menu</small></button>
-  <button class="nav-btn" id="btnNavScrollUp">↑<br /><small>Scroll Up</small></button>
-  <button class="nav-btn" id="btnNavScrollDown">↓<br /><small>Scroll Down</small></button>
+  <button class="nav-btn" onclick="openSidebarTab('quick')">📱<br /><small>Display</small></button>
+  <button class="nav-btn" onclick="openSidebarTab('option')">⚙️<br /><small>Option</small></button>
+  <button class="nav-btn" onclick="openSidebarTab('adjustment')">🛠️<br /><small>Setting</small></button>
 </nav>
 
 <!-- Print Preview Modal -->
 <div class="modal-backdrop" id="previewModal">
   <div class="modal">
     <div class="modal-header">
-      <h3 style="flex:1;">Print & Download Preview</h3>
-      <div style="font-size: 12px; opacity: 0.7; font-weight: normal; margin-right: 15px;">(Scroll vertically)</div>
+      <h3>Print Preview</h3>
       <button class="btn icon" id="closePreview">✕</button>
     </div>
     <div class="modal-body">
